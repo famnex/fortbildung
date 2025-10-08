@@ -275,9 +275,16 @@ const ParticipantsPage = ({ user, onLogout }) => {
 
             {pendingCount > 0 && selectedParticipants.length > 0 && (
               <div className="mt-6 pt-6 border-t border-slate-200">
+                {!isTrainingFinished() && (
+                  <div className="mb-4 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-sm text-orange-800">
+                      <strong>Hinweis:</strong> Teilnahmebestätigungen können erst nach Ende des letzten Termins ausgestellt werden.
+                    </p>
+                  </div>
+                )}
                 <Button
                   onClick={handleConfirm}
-                  disabled={confirming}
+                  disabled={confirming || !isTrainingFinished()}
                   className="w-full bg-green-600 hover:bg-green-700"
                   data-testid="confirm-button"
                 >
