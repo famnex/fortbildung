@@ -309,18 +309,6 @@ const AdminSettingsPage = ({ user, onLogout }) => {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="ldap_user_filter">Benutzer-Filter *</Label>
-                      <Input
-                        id="ldap_user_filter"
-                        placeholder="(uid={username})"
-                        value={settings.ldap_user_filter}
-                        onChange={(e) => handleChange("ldap_user_filter", e.target.value)}
-                        data-testid="ldap-user-filter-input"
-                      />
-                      <p className="text-xs text-slate-500">Verwenden Sie {'{username}'} als Platzhalter</p>
-                    </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="ldap_user_attr">Benutzerattribut</Label>
