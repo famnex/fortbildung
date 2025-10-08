@@ -46,7 +46,6 @@ const EditTrainingPage = ({ user, onLogout }) => {
         location: training.location,
         max_participants: training.max_participants,
         registration_deadline: training.registration_deadline.split("T")[0],
-        optional_question: training.optional_question || "",
         status: training.status
       });
       if (training.dates && training.dates.length > 0) {
@@ -54,6 +53,9 @@ const EditTrainingPage = ({ user, onLogout }) => {
           start_datetime: d.start_datetime.slice(0, 16),
           end_datetime: d.end_datetime.slice(0, 16)
         })));
+      }
+      if (training.form_fields) {
+        setFormFields(training.form_fields);
       }
     } catch (error) {
       console.error("Error fetching training:", error);
