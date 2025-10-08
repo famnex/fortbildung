@@ -178,7 +178,7 @@ class Registration(BaseModel):
 
 class RegistrationCreate(BaseModel):
     training_id: str
-    optional_answer: str = ""
+    form_responses: Dict[str, Any] = {}
 
 class Participation(BaseModel):
     model_config = ConfigDict(extra="ignore")
