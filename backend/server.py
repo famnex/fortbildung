@@ -248,7 +248,8 @@ async def send_email(to_email: str, subject: str, body_html: str):
             return
         
         msg = MIMEMultipart('alternative')
-        msg['From'] = settings['smtp_from_email']
+        from_name = settings.get('smtp_from_name', 'MSO Fortbildungssystem')
+        msg['From'] = f"{from_name} <{settings['smtp_from_email']}>"
         msg['To'] = to_email
         msg['Subject'] = subject
         
