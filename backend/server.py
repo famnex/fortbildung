@@ -160,7 +160,7 @@ class TrainingCreate(BaseModel):
     dates: List[TrainingDate]
     max_participants: int
     registration_deadline: str
-    optional_question: str = ""
+    form_fields: List[FormField] = []
     status: str = "draft"
 
 class Registration(BaseModel):
