@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Download, CheckCircle2, Clock } from "lucide-react";
+import { Download, CheckCircle2, Clock, Trash2 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 
 const ParticipantsPage = ({ user, onLogout }) => {
