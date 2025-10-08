@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Save, Plus, X } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
+import FormBuilder from "@/components/FormBuilder";
 
 const EditTrainingPage = ({ user, onLogout }) => {
   const navigate = useNavigate();
