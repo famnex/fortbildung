@@ -233,13 +233,17 @@ const ParticipantsPage = ({ user, onLogout }) => {
                       <div className="flex-1">
                         <p className="font-medium text-slate-800">{participant.user_name}</p>
                         <p className="text-sm text-slate-600">{participant.user_email}</p>
-                        {participant.form_responses && Object.keys(participant.form_responses).length > 0 && (
+                        {participant.form_responses && Object.keys(participant.form_responses).length > 0 && training?.form_fields && (
                           <div className="text-sm text-slate-500 mt-1 space-y-1">
-                            {Object.entries(participant.form_responses).map(([key, value]) => (
-                              <p key={key}>
-                                <span className="font-medium">Antwort:</span> {Array.isArray(value) ? value.join(", ") : value}
-                              </p>
-                            ))}
+                            {Object.entries(participant.form_responses).map(([fieldId, value]) => {
+                              const field = training.form_fields.find(f => f.field_id === fieldId);
+                              const fieldLabel = field?.label || "Antwort";
+                              return (
+                                <p key={fieldId}>
+                                  <span className="font-medium">{fieldLabel}:</span> {Array.isArray(value) ? value.join(", ") : value}
+                                </p>
+                              );
+                            })}
                           </div>
                         )}
                         <p className="text-xs text-slate-500 mt-1">
