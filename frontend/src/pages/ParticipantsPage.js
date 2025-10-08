@@ -19,6 +19,8 @@ const ParticipantsPage = ({ user, onLogout }) => {
   const [selectedParticipants, setSelectedParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, participant: null });
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchData();
