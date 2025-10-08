@@ -65,6 +65,15 @@ const CreateTrainingPage = ({ user, onLogout }) => {
       return;
     }
 
+    // Validate form fields
+    if (formFields.length > 0) {
+      const invalidFields = formFields.filter(f => !f.label || f.label.trim() === "");
+      if (invalidFields.length > 0) {
+        toast.error("Bitte geben Sie für alle Formularfelder eine Feldbezeichnung ein");
+        return;
+      }
+    }
+
     // Validate dates plausibility
     const registrationDeadline = new Date(formData.registration_deadline + "T23:59:59");
     
