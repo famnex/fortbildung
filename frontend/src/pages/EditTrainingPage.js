@@ -112,7 +112,8 @@ const EditTrainingPage = ({ user, onLogout }) => {
         dates: dates.map(d => ({
           start_datetime: d.start_datetime,
           end_datetime: d.end_datetime
-        }))
+        })),
+        form_fields: formFields
       });
       toast.success("Fortbildung erfolgreich aktualisiert");
       navigate("/my-trainings");
