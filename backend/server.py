@@ -460,8 +460,9 @@ async def test_ldap(test_data: Dict[str, str], current_user: Dict[str, Any] = De
             auto_bind=True
         )
         
-        # Search for test user
-        user_filter = settings['ldap_user_filter'].replace('{username}', test_username)
+        # Search for test user using user attribute
+        user_attr = settings.get('ldap_user_attr', 'sAMAccountName')
+        user_filter = f"({user_attr}={test_username})"
         conn.search(
             settings['ldap_base_dn'], 
             user_filter, 
