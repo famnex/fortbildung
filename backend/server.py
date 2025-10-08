@@ -124,6 +124,13 @@ class TrainingDate(BaseModel):
     start_datetime: str
     end_datetime: str
 
+class FormField(BaseModel):
+    field_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    field_type: str  # text, multiselect, date, dropdown
+    label: str
+    required: bool = False
+    options: List[str] = []  # For multiselect and dropdown
+
 class Training(BaseModel):
     model_config = ConfigDict(extra="ignore")
     
@@ -139,7 +146,7 @@ class Training(BaseModel):
     created_by: str  # user_id
     created_by_name: str = ""
     status: str = "draft"  # draft or published
-    optional_question: str = ""
+    form_fields: List[FormField] = []
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     current_participants: int = 0
