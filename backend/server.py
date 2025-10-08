@@ -103,6 +103,13 @@ class UserCreate(BaseModel):
     email: EmailStr
     name: str
     password: str
+    role: str = "user"
+
+class UserUpdate(BaseModel):
+    email: Optional[EmailStr] = None
+    name: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[str] = None
 
 class LoginRequest(BaseModel):
     email: str
