@@ -501,10 +501,13 @@ async def test_ldap(test_data: Dict[str, str], current_user: Dict[str, Any] = De
         }
         
     except ldap3.core.exceptions.LDAPException as e:
-        return {"success": False, "message": f"LDAP-Fehler: {str(e)}"}
+        error_msg = str(e) if str(e) else "Unbekannter LDAP-Fehler"
+        logger.error(f"LDAP test error: {error_msg}")
+        return {"success": False, "message": f"LDAP-Fehler: {error_msg}"}
     except Exception as e:
-        logger.error(f"LDAP test error: {e}")
-        return {"success": False, "message": f"Fehler: {str(e)}"}
+        error_msg = str(e) if str(e) else "Unbekannter Fehler"
+        logger.error(f"LDAP test error: {error_msg}")
+        return {"success": False, "message": f"Fehler: {error_msg}"}
 
 @api_router.post("/settings/test-smtp")
 async def test_smtp(test_data: Dict[str, str], current_user: Dict[str, Any] = Depends(get_admin_user)):
