@@ -109,13 +109,17 @@ const FormBuilder = ({ fields, onChange }) => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="space-y-2">
-                  <Label htmlFor={`field_label_${index}`}>Feldbezeichnung</Label>
+                  <Label htmlFor={`field_label_${index}`}>Feldbezeichnung *</Label>
                   <Input
                     id={`field_label_${index}`}
                     value={field.label}
                     onChange={(e) => updateField(index, { label: e.target.value })}
                     placeholder="z.B. Besondere Bedürfnisse"
+                    required
                   />
+                  {!field.label && (
+                    <p className="text-xs text-red-600">Dieses Feld ist erforderlich</p>
+                  )}
                 </div>
 
                 <div className="flex items-center space-x-2">
