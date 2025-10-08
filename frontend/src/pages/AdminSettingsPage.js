@@ -29,7 +29,6 @@ const AdminSettingsPage = ({ user, onLogout }) => {
     ldap_base_dn: "",
     ldap_bind_dn: "",
     ldap_bind_password: "",
-    ldap_user_filter: "(uid={username})",
     ldap_group_filter: "",
     ldap_user_attr: "sAMAccountName",
     ldap_mail_attr: "mail",
