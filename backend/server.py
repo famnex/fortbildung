@@ -1264,7 +1264,11 @@ async def get_certificate(participation_id: str, current_user: Dict[str, Any] = 
     )
 
 @api_router.get("/pdfs/participant-list/{training_id}")
-async def get_participant_list(training_id: str, current_user: Dict[str, Any] = Depends(get_current_user)):
+async def get_participant_list(
+    training_id: str, 
+    selected_fields: str = "",
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
     training = await db.trainings.find_one({"training_id": training_id}, {"_id": 0})
     if not training:
         raise HTTPException(status_code=404, detail="Fortbildung nicht gefunden")
@@ -1279,6 +1283,10 @@ async def get_participant_list(training_id: str, current_user: Dict[str, Any] = 
     
     settings = await db.settings.find_one({}, {"_id": 0})
     school_name = settings.get("school_name", "MSO - Fortbildungssystem") if settings else "MSO - Fortbildungssystem"
+    logo_base64 = settings.get("school_logo_base64", "") if settings else ""
+    
+    # Parse selected fields
+    selected_field_ids = selected_fields.split(",") if selected_fields else []
     
     # Create PDF
     buffer = BytesIO()
