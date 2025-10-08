@@ -895,7 +895,12 @@ async def confirm_participants(training_id: str, user_ids: List[str], current_us
     # Check if last date has passed
     if training.get("dates"):
         last_date = max(training["dates"], key=lambda d: d["end_datetime"])
-        last_end = datetime.fromisoformat(last_date["end_datetime"].replace("Z", "+00:00"))
+        # Handle different datetime formats
+        end_dt_str = last_date["end_datetime"]
+        if "T" in end_dt_str and not end_dt_str.endswith("Z") and "+" not in end_dt_str:
+            last_end = datetime.fromisoformat(end_dt_str).replace(tzinfo=timezone.utc)
+        else:
+            last_end = datetime.fromisoformat(end_dt_str.replace("Z", "+00:00"))
         now = datetime.now(timezone.utc)
         
         if last_end > now:
