@@ -66,7 +66,6 @@ class Settings(BaseModel):
     ldap_base_dn: str = ""
     ldap_bind_dn: str = ""
     ldap_bind_password: str = ""
-    ldap_user_filter: str = "(uid={username})"
     ldap_group_filter: str = ""
     ldap_user_attr: str = "sAMAccountName"
     ldap_mail_attr: str = "mail"
