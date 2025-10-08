@@ -1356,18 +1356,52 @@ async def get_participant_list(
     story.append(Paragraph(f"<b>Anbieter:</b> {training['created_by_name']}", info_style))
     story.append(Spacer(1, 1*cm))
     
-    # Participant table
-    table_data = [['Nr.', 'Name', 'E-Mail', 'Anmeldedatum']]
+    # Participant table - Build header dynamically
+    header = ['Nr.', 'Name', 'E-Mail', 'Anmeldedatum']
+    
+    # Add selected form field headers
+    selected_form_fields = []
+    if selected_field_ids and training.get('form_fields'):
+        for field_id in selected_field_ids:
+            field = next((f for f in training['form_fields'] if f['field_id'] == field_id), None)
+            if field:
+                selected_form_fields.append(field)
+                header.append(field['label'])
+    
+    table_data = [header]
+    
+    # Build table rows
     for i, reg in enumerate(registrations, 1):
         registered_date = datetime.fromisoformat(reg['registered_at'])
-        table_data.append([
+        row = [
             str(i),
             reg['user_name'],
             reg['user_email'],
             registered_date.strftime('%d.%m.%Y')
-        ])
+        ]
+        
+        # Add form field responses
+        for field in selected_form_fields:
+            response = reg.get('form_responses', {}).get(field['field_id'], '')
+            if isinstance(response, list):
+                response = ', '.join(response)
+            row.append(str(response))
+        
+        table_data.append(row)
     
-    table = Table(table_data, colWidths=[1.5*cm, 5*cm, 6*cm, 3*cm])
+    # Calculate column widths dynamically
+    base_widths = [1.5*cm, 4*cm, 5*cm, 3*cm]
+    if selected_form_fields:
+        # Reduce base column widths slightly to make room
+        base_widths = [1.2*cm, 3.5*cm, 4*cm, 2.5*cm]
+        # Add columns for form fields
+        available_width = 18*cm - sum(base_widths)
+        field_width = available_width / len(selected_form_fields) if selected_form_fields else 0
+        col_widths = base_widths + [field_width] * len(selected_form_fields)
+    else:
+        col_widths = base_widths
+    
+    table = Table(table_data, colWidths=col_widths)
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a365d')),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
