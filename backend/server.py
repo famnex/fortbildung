@@ -68,6 +68,10 @@ class Settings(BaseModel):
     ldap_bind_password: str = ""
     ldap_user_filter: str = "(uid={username})"
     ldap_group_filter: str = ""
+    ldap_user_attr: str = "sAMAccountName"
+    ldap_mail_attr: str = "mail"
+    ldap_display_attr: str = "displayName"
+    ldap_upn_suffix: str = ""
     
     # SMTP Settings
     smtp_enabled: bool = False
@@ -76,11 +80,12 @@ class Settings(BaseModel):
     smtp_username: str = ""
     smtp_password: str = ""
     smtp_from_email: str = ""
+    smtp_from_name: str = "MSO Fortbildungssystem"
     smtp_use_tls: bool = True
     
     # School Info
     school_name: str = "MSO - Fortbildungssystem"
-    school_logo_url: str = ""
+    school_logo_base64: str = ""
 
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
