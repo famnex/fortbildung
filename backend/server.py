@@ -975,7 +975,7 @@ async def register_for_training(reg_data: RegistrationCreate, current_user: Dict
         user_name=current_user["name"],
         user_email=current_user["email"],
         status=status,
-        optional_answer=reg_data.optional_answer
+        form_responses=reg_data.form_responses
     )
     
     await db.registrations.insert_one(registration.model_dump())
