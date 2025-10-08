@@ -862,7 +862,7 @@ async def get_participants(training_id: str, current_user: Dict[str, Any] = Depe
             "user_name": reg["user_name"],
             "user_email": reg["user_email"],
             "registered_at": reg["registered_at"],
-            "optional_answer": reg.get("optional_answer", ""),
+            "form_responses": reg.get("form_responses", {}),
             "confirmed": False,
             "participation_id": None
         }
