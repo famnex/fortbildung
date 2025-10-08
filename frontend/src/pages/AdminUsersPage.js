@@ -50,6 +50,13 @@ const AdminUsersPage = ({ user, onLogout }) => {
       return;
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error("Bitte geben Sie eine gültige E-Mail-Adresse ein");
+      return;
+    }
+
     setSaving(true);
     try {
       await axios.post(`${API}/users`, formData);
