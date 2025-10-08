@@ -304,17 +304,17 @@ async def log_change(training_id: str, user_id: str, user_name: str, action: str
 @app.on_event("startup")
 async def startup_event():
     # Create default admin user if not exists
-    admin = await db.users.find_one({"email": "admin@system.local"})
+    admin = await db.users.find_one({"email": "admin@fortbildung.mso"})
     if not admin:
         admin_user = User(
-            email="admin@system.local",
+            email="admin@fortbildung.mso",
             name="Administrator",
             password_hash=hash_password("admin123"),
             role="admin",
             auth_source="local"
         )
         await db.users.insert_one(admin_user.model_dump())
-        logger.info("Default admin user created: admin@system.local / admin123")
+        logger.info("Default admin user created: admin@fortbildung.mso / admin123")
     
     # Initialize settings if not exists
     settings = await db.settings.find_one({})
