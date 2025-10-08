@@ -1068,6 +1068,7 @@ async def get_certificate(participation_id: str, current_user: Dict[str, Any] = 
     
     settings = await db.settings.find_one({}, {"_id": 0})
     school_name = settings.get("school_name", "MSO - Fortbildungssystem") if settings else "MSO - Fortbildungssystem"
+    logo_base64 = settings.get("school_logo_base64", "") if settings else ""
     
     # Create PDF
     buffer = BytesIO()
@@ -1076,6 +1077,44 @@ async def get_certificate(participation_id: str, current_user: Dict[str, Any] = 
     story = []
     styles = getSampleStyleSheet()
     
+    # Logo (if available)
+    if logo_base64:
+        try:
+            from reportlab.platypus import Image
+            from reportlab.lib.utils import ImageReader
+            import base64
+            import io
+            
+            # Extract base64 data
+            if "base64," in logo_base64:
+                logo_data = logo_base64.split("base64,")[1]
+            else:
+                logo_data = logo_base64
+            
+            logo_bytes = base64.b64decode(logo_data)
+            logo_buffer = io.BytesIO(logo_bytes)
+            
+            # Add logo
+            img = Image(logo_buffer, width=4*cm, height=4*cm, kind='proportional')
+            img.hAlign = 'CENTER'
+            story.append(img)
+            story.append(Spacer(1, 0.5*cm))
+        except Exception as e:
+            logger.error(f"Error adding logo to PDF: {e}")
+    
+    # School name
+    school_style = ParagraphStyle(
+        'SchoolName',
+        parent=styles['Normal'],
+        fontSize=16,
+        leading=20,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#1a365d'),
+        fontName='Helvetica-Bold'
+    )
+    story.append(Paragraph(school_name, school_style))
+    story.append(Spacer(1, 1*cm))
+    
     # Title
     title_style = ParagraphStyle(
         'CustomTitle',
@@ -1083,7 +1122,8 @@ async def get_certificate(participation_id: str, current_user: Dict[str, Any] = 
         fontSize=24,
         textColor=colors.HexColor('#1a365d'),
         spaceAfter=30,
-        alignment=TA_CENTER
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
     )
     story.append(Paragraph("Teilnahmeurkunde", title_style))
     story.append(Spacer(1, 1*cm))
@@ -1097,9 +1137,7 @@ async def get_certificate(participation_id: str, current_user: Dict[str, Any] = 
         alignment=TA_CENTER
     )
     
-    story.append(Paragraph(f"<b>{school_name}</b>", content_style))
-    story.append(Spacer(1, 0.5*cm))
-    story.append(Paragraph("bescheinigt hiermit, dass", content_style))
+    story.append(Paragraph("Wir bescheinigen hiermit, dass", content_style))
     story.append(Spacer(1, 0.5*cm))
     
     name_style = ParagraphStyle(
