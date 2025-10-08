@@ -65,6 +65,26 @@ const CreateTrainingPage = ({ user, onLogout }) => {
       return;
     }
 
+    // Validate dates plausibility
+    const registrationDeadline = new Date(formData.registration_deadline + "T23:59:59");
+    
+    for (let i = 0; i < dates.length; i++) {
+      const startDate = new Date(dates[i].start_datetime);
+      const endDate = new Date(dates[i].end_datetime);
+      
+      // Check if end is after start
+      if (endDate <= startDate) {
+        toast.error(`Termin ${i + 1}: Das Enddatum muss nach dem Startdatum liegen`);
+        return;
+      }
+      
+      // Check if registration deadline is before or equal to start
+      if (registrationDeadline > startDate) {
+        toast.error(`Termin ${i + 1}: Die Anmeldefrist muss vor oder gleich dem Startdatum liegen`);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       await axios.post(`${API}/trainings`, {
