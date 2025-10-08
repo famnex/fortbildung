@@ -938,6 +938,38 @@ async def confirm_participants(training_id: str, user_ids: List[str], current_us
     
     return {"message": "Teilnahmen erfolgreich bestätigt"}
 
+@api_router.delete("/trainings/{training_id}/participants/{registration_id}")
+async def remove_participant(training_id: str, registration_id: str, current_user: Dict[str, Any] = Depends(get_current_user)):
+    training = await db.trainings.find_one({"training_id": training_id}, {"_id": 0})
+    if not training:
+        raise HTTPException(status_code=404, detail="Fortbildung nicht gefunden")
+    
+    if training["created_by"] != current_user["user_id"] and current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Keine Berechtigung")
+    
+    registration = await db.registrations.find_one({"registration_id": registration_id}, {"_id": 0})
+    if not registration:
+        raise HTTPException(status_code=404, detail="Anmeldung nicht gefunden")
+    
+    # Delete registration
+    await db.registrations.delete_one({"registration_id": registration_id})
+    
+    # Delete participation if exists
+    await db.participations.delete_many({"training_id": training_id, "user_id": registration["user_id"]})
+    
+    # Notify user
+    await send_email(
+        registration["user_email"],
+        f"Abmeldung: {training['title']}",
+        f"""<html><body>
+        <h2>Abmeldung von Fortbildung</h2>
+        <p>Sie wurden von der Fortbildung "{training['title']}" abgemeldet.</p>
+        <p>Bei Fragen wenden Sie sich bitte an den Anbieter.</p>
+        </body></html>"""
+    )
+    
+    return {"message": "Teilnehmer erfolgreich entfernt"}
+
 # ===================== REGISTRATION ROUTES =====================
 
 @api_router.get("/registrations/my")
