@@ -59,11 +59,11 @@ const TrainingsPage = ({ user, onLogout }) => {
     try {
       await axios.post(`${API}/registrations`, {
         training_id: selectedTraining.training_id,
-        optional_answer: optionalAnswer
+        form_responses: formResponses
       });
       toast.success("Erfolgreich angemeldet!");
       setShowRegisterDialog(false);
-      setOptionalAnswer("");
+      setFormResponses({});
       fetchTrainings();
     } catch (error) {
       console.error("Error registering:", error);
