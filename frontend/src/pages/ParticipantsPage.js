@@ -63,6 +63,33 @@ const ParticipantsPage = ({ user, onLogout }) => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!deleteDialog.participant) return;
+
+    setDeleting(true);
+    try {
+      await axios.delete(`${API}/trainings/${trainingId}/participants/${deleteDialog.participant.registration_id}`);
+      toast.success("Teilnehmer erfolgreich entfernt");
+      setDeleteDialog({ open: false, participant: null });
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting participant:", error);
+      toast.error(error.response?.data?.detail || "Löschen fehlgeschlagen");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const isTrainingFinished = () => {
+    if (!training || !training.dates || training.dates.length === 0) return false;
+    
+    const lastDate = training.dates.reduce((latest, current) => {
+      return new Date(current.end_datetime) > new Date(latest.end_datetime) ? current : latest;
+    });
+    
+    return new Date(lastDate.end_datetime) < new Date();
+  };
+
   const downloadParticipantList = async () => {
     try {
       const response = await axios.get(`${API}/pdfs/participant-list/${trainingId}`, {
