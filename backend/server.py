@@ -552,6 +552,77 @@ async def get_users(current_user: Dict[str, Any] = Depends(get_admin_user)):
     users = await db.users.find({}, {"_id": 0, "password_hash": 0}).to_list(1000)
     return users
 
+@api_router.post("/users", response_model=User)
+async def create_user(user_data: UserCreate, current_user: Dict[str, Any] = Depends(get_admin_user)):
+    # Check if email exists
+    existing = await db.users.find_one({"email": user_data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="E-Mail-Adresse bereits vergeben")
+    
+    new_user = User(
+        email=user_data.email,
+        name=user_data.name,
+        password_hash=hash_password(user_data.password),
+        role=user_data.role,
+        auth_source="local"
+    )
+    
+    await db.users.insert_one(new_user.model_dump())
+    
+    # Remove password_hash from response
+    user_dict = new_user.model_dump()
+    user_dict.pop("password_hash", None)
+    
+    return user_dict
+
+@api_router.put("/users/{user_id}")
+async def update_user(user_id: str, user_data: UserUpdate, current_user: Dict[str, Any] = Depends(get_admin_user)):
+    user = await db.users.find_one({"user_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Benutzer nicht gefunden")
+    
+    if user.get("auth_source") == "ldap":
+        raise HTTPException(status_code=400, detail="LDAP-Benutzer können nicht bearbeitet werden")
+    
+    update_data = {}
+    if user_data.email:
+        # Check if new email is taken
+        existing = await db.users.find_one({"email": user_data.email, "user_id": {"$ne": user_id}})
+        if existing:
+            raise HTTPException(status_code=400, detail="E-Mail-Adresse bereits vergeben")
+        update_data["email"] = user_data.email
+    
+    if user_data.name:
+        update_data["name"] = user_data.name
+    
+    if user_data.role:
+        if user_data.role not in ["admin", "user"]:
+            raise HTTPException(status_code=400, detail="Ungültige Rolle")
+        update_data["role"] = user_data.role
+    
+    if user_data.password:
+        update_data["password_hash"] = hash_password(user_data.password)
+    
+    if update_data:
+        await db.users.update_one({"user_id": user_id}, {"$set": update_data})
+    
+    return {"message": "Benutzer erfolgreich aktualisiert"}
+
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str, current_user: Dict[str, Any] = Depends(get_admin_user)):
+    if user_id == current_user["user_id"]:
+        raise HTTPException(status_code=400, detail="Sie können sich nicht selbst löschen")
+    
+    user = await db.users.find_one({"user_id": user_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Benutzer nicht gefunden")
+    
+    if user.get("auth_source") == "ldap":
+        raise HTTPException(status_code=400, detail="LDAP-Benutzer können nicht gelöscht werden")
+    
+    await db.users.delete_one({"user_id": user_id})
+    return {"message": "Benutzer erfolgreich gelöscht"}
+
 @api_router.put("/users/{user_id}/role")
 async def update_user_role(user_id: str, role: str, current_user: Dict[str, Any] = Depends(get_admin_user)):
     if role not in ["admin", "user"]:
