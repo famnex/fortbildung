@@ -25,10 +25,10 @@ const EditTrainingPage = ({ user, onLogout }) => {
     location: "",
     max_participants: 20,
     registration_deadline: "",
-    optional_question: "",
     status: "draft"
   });
   const [dates, setDates] = useState([{ start_datetime: "", end_datetime: "" }]);
+  const [formFields, setFormFields] = useState([]);
 
   useEffect(() => {
     fetchTraining();
