@@ -861,6 +861,18 @@ async def confirm_participants(training_id: str, user_ids: List[str], current_us
     if training["created_by"] != current_user["user_id"] and current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Keine Berechtigung")
     
+    # Check if last date has passed
+    if training.get("dates"):
+        last_date = max(training["dates"], key=lambda d: d["end_datetime"])
+        last_end = datetime.fromisoformat(last_date["end_datetime"].replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        
+        if last_end > now:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Teilnahmebestätigung erst nach Ende des letzten Termins ({last_end.strftime('%d.%m.%Y %H:%M')}) möglich"
+            )
+    
     for user_id in user_ids:
         # Check if participation exists
         existing = await db.participations.find_one({
