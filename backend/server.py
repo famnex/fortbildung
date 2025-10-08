@@ -1295,6 +1295,42 @@ async def get_participant_list(
     story = []
     styles = getSampleStyleSheet()
     
+    # Logo (if available)
+    if logo_base64:
+        try:
+            from reportlab.platypus import Image
+            from reportlab.lib.utils import ImageReader
+            import base64
+            import io
+            
+            if "base64," in logo_base64:
+                logo_data = logo_base64.split("base64,")[1]
+            else:
+                logo_data = logo_base64
+            
+            logo_bytes = base64.b64decode(logo_data)
+            logo_buffer = io.BytesIO(logo_bytes)
+            
+            img = Image(logo_buffer, width=3*cm, height=3*cm, kind='proportional')
+            img.hAlign = 'CENTER'
+            story.append(img)
+            story.append(Spacer(1, 0.3*cm))
+        except Exception as e:
+            logger.error(f"Error adding logo to participant list: {e}")
+    
+    # School name
+    school_style = ParagraphStyle(
+        'SchoolName',
+        parent=styles['Normal'],
+        fontSize=14,
+        leading=18,
+        alignment=TA_CENTER,
+        textColor=colors.HexColor('#1a365d'),
+        fontName='Helvetica-Bold'
+    )
+    story.append(Paragraph(school_name, school_style))
+    story.append(Spacer(1, 0.5*cm))
+    
     # Title
     title_style = ParagraphStyle(
         'CustomTitle',
