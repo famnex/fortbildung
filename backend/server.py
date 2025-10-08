@@ -279,11 +279,12 @@ async def authenticate_ldap(username: str, password: str) -> Optional[Dict[str, 
         conn = ldap3.Connection(server, user=settings['ldap_bind_dn'], password=settings['ldap_bind_password'], auto_bind=True)
         
         # Get attribute names from settings
+        user_attr = settings.get('ldap_user_attr', 'sAMAccountName')
         mail_attr = settings.get('ldap_mail_attr', 'mail')
         display_attr = settings.get('ldap_display_attr', 'displayName')
         
-        # Search for user
-        search_filter = settings['ldap_user_filter'].replace('{username}', username)
+        # Search for user using user attribute
+        search_filter = f"({user_attr}={username})"
         conn.search(settings['ldap_base_dn'], search_filter, attributes=[mail_attr, display_attr, 'cn'])
         
         if not conn.entries:
