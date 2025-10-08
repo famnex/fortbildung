@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { MapPin, Calendar, Users, Search, Clock, AlertCircle } from "lucide-react";
+import DynamicForm from "@/components/DynamicForm";
 
 const TrainingsPage = ({ user, onLogout }) => {
   const [trainings, setTrainings] = useState([]);
