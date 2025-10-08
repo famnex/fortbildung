@@ -21,6 +21,8 @@ const ParticipantsPage = ({ user, onLogout }) => {
   const [confirming, setConfirming] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState({ open: false, participant: null });
   const [deleting, setDeleting] = useState(false);
+  const [downloadDialog, setDownloadDialog] = useState(false);
+  const [selectedFormFields, setSelectedFormFields] = useState([]);
 
   useEffect(() => {
     fetchData();
