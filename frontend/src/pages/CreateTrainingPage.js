@@ -249,16 +249,8 @@ const CreateTrainingPage = ({ user, onLogout }) => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="optional_question">Optionale Frage bei Anmeldung</Label>
-              <Input
-                id="optional_question"
-                name="optional_question"
-                placeholder="z.B. Besondere Bedürfnisse oder Wünsche?"
-                value={formData.optional_question}
-                onChange={handleChange}
-                data-testid="optional-question-input"
-              />
+            <div className="pt-4 border-t border-slate-200">
+              <FormBuilder fields={formFields} onChange={setFormFields} />
             </div>
 
             <div className="flex space-x-3 pt-4 border-t border-slate-200">
