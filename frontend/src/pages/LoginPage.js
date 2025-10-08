@@ -80,7 +80,7 @@ const LoginPage = ({ onLogin }) => {
           </form>
           <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
             <p className="text-sm text-slate-700 font-medium mb-1">🔑 Standard-Admin:</p>
-            <p className="text-xs text-slate-600">E-Mail: <code className="bg-white px-1.5 py-0.5 rounded">admin@system.local</code></p>
+            <p className="text-xs text-slate-600">E-Mail: <code className="bg-white px-1.5 py-0.5 rounded">admin@fortbildung.mso</code></p>
             <p className="text-xs text-slate-600">Passwort: <code className="bg-white px-1.5 py-0.5 rounded">admin123</code></p>
           </div>
         </CardContent>
