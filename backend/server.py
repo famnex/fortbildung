@@ -650,15 +650,34 @@ async def get_trainings(current_user: Dict[str, Any] = Depends(get_current_user)
     # Get all published trainings
     trainings = await db.trainings.find({"status": "published"}, {"_id": 0}).to_list(1000)
     
-    # Add participant count
-    for training in trainings:
-        count = await db.registrations.count_documents({
-            "training_id": training["training_id"],
-            "status": "registered"
-        })
-        training["current_participants"] = count
+    # Filter out past trainings (where last date has ended)
+    now = datetime.now(timezone.utc)
+    future_trainings = []
     
-    return trainings
+    for training in trainings:
+        if training.get("dates") and len(training["dates"]) > 0:
+            # Get last date
+            last_date = max(training["dates"], key=lambda d: d["end_datetime"])
+            last_end = datetime.fromisoformat(last_date["end_datetime"].replace("Z", "+00:00"))
+            
+            # Only include if last date hasn't ended yet
+            if last_end > now:
+                count = await db.registrations.count_documents({
+                    "training_id": training["training_id"],
+                    "status": "registered"
+                })
+                training["current_participants"] = count
+                future_trainings.append(training)
+        else:
+            # If no dates, include it
+            count = await db.registrations.count_documents({
+                "training_id": training["training_id"],
+                "status": "registered"
+            })
+            training["current_participants"] = count
+            future_trainings.append(training)
+    
+    return future_trainings
 
 @api_router.get("/trainings/my", response_model=List[Training])
 async def get_my_trainings(current_user: Dict[str, Any] = Depends(get_current_user)):
