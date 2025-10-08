@@ -225,17 +225,12 @@ const TrainingsPage = ({ user, onLogout }) => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-4">
-            {selectedTraining?.optional_question && (
-              <div className="space-y-2">
-                <Label>{selectedTraining.optional_question}</Label>
-                <Textarea
-                  value={optionalAnswer}
-                  onChange={(e) => setOptionalAnswer(e.target.value)}
-                  placeholder="Ihre Antwort..."
-                  rows={4}
-                  data-testid="optional-answer-input"
-                />
-              </div>
+            {selectedTraining?.form_fields && selectedTraining.form_fields.length > 0 && (
+              <DynamicForm
+                fields={selectedTraining.form_fields}
+                values={formResponses}
+                onChange={setFormResponses}
+              />
             )}
             <div className="flex space-x-3">
               <Button
