@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Save, Eye, Plus, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import FormBuilder from "@/components/FormBuilder";
 
 const CreateTrainingPage = ({ user, onLogout }) => {
   const navigate = useNavigate();
@@ -22,10 +23,10 @@ const CreateTrainingPage = ({ user, onLogout }) => {
     location: "",
     max_participants: 20,
     registration_deadline: "",
-    optional_question: "",
     status: "draft"
   });
   const [dates, setDates] = useState([{ start_datetime: "", end_datetime: "" }]);
+  const [formFields, setFormFields] = useState([]);
 
   const handleChange = (e) => {
     setFormData({
