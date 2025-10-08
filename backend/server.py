@@ -172,7 +172,7 @@ class Registration(BaseModel):
     user_name: str = ""
     user_email: str = ""
     status: str = "registered"  # registered, waitlist, cancelled
-    optional_answer: str = ""
+    form_responses: Dict[str, Any] = {}
     registered_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     cancelled_at: Optional[str] = None
 
