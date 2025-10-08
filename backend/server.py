@@ -278,9 +278,13 @@ async def authenticate_ldap(username: str, password: str) -> Optional[Dict[str, 
         # First bind with service account
         conn = ldap3.Connection(server, user=settings['ldap_bind_dn'], password=settings['ldap_bind_password'], auto_bind=True)
         
+        # Get attribute names from settings
+        mail_attr = settings.get('ldap_mail_attr', 'mail')
+        display_attr = settings.get('ldap_display_attr', 'displayName')
+        
         # Search for user
         search_filter = settings['ldap_user_filter'].replace('{username}', username)
-        conn.search(settings['ldap_base_dn'], search_filter, attributes=['mail', 'cn', 'displayName', 'givenName', 'sn'])
+        conn.search(settings['ldap_base_dn'], search_filter, attributes=[mail_attr, display_attr, 'cn'])
         
         if not conn.entries:
             return None
@@ -293,9 +297,9 @@ async def authenticate_ldap(username: str, password: str) -> Optional[Dict[str, 
         if not user_conn.bind():
             return None
         
-        # Extract user info
-        email = str(user_entry.mail) if hasattr(user_entry, 'mail') else username
-        name = str(user_entry.displayName) if hasattr(user_entry, 'displayName') else \
+        # Extract user info using configured attributes
+        email = str(getattr(user_entry, mail_attr)) if hasattr(user_entry, mail_attr) else username
+        name = str(getattr(user_entry, display_attr)) if hasattr(user_entry, display_attr) else \
                str(user_entry.cn) if hasattr(user_entry, 'cn') else username
         
         user_conn.unbind()
