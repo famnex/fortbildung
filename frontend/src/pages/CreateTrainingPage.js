@@ -73,6 +73,7 @@ const CreateTrainingPage = ({ user, onLogout }) => {
           start_datetime: d.start_datetime,
           end_datetime: d.end_datetime
         })),
+        form_fields: formFields,
         status
       });
       toast.success(`Fortbildung erfolgreich ${status === "draft" ? "als Entwurf gespeichert" : "veröffentlicht"}`);
