@@ -233,17 +233,21 @@ const ParticipantsPage = ({ user, onLogout }) => {
                       <div className="flex-1">
                         <p className="font-medium text-slate-800">{participant.user_name}</p>
                         <p className="text-sm text-slate-600">{participant.user_email}</p>
-                        {participant.optional_answer && (
-                          <p className="text-sm text-slate-500 mt-1">
-                            Anmerkung: {participant.optional_answer}
-                          </p>
+                        {participant.form_responses && Object.keys(participant.form_responses).length > 0 && (
+                          <div className="text-sm text-slate-500 mt-1 space-y-1">
+                            {Object.entries(participant.form_responses).map(([key, value]) => (
+                              <p key={key}>
+                                <span className="font-medium">Antwort:</span> {Array.isArray(value) ? value.join(", ") : value}
+                              </p>
+                            ))}
+                          </div>
                         )}
                         <p className="text-xs text-slate-500 mt-1">
                           Angemeldet: {formatDate(participant.registered_at)}
                         </p>
                       </div>
                     </div>
-                    <div>
+                    <div className="flex items-center space-x-2">
                       {participant.confirmed ? (
                         <Badge variant="default" className="bg-green-100 text-green-800">
                           <CheckCircle2 className="w-3 h-3 mr-1" />
@@ -255,6 +259,14 @@ const ParticipantsPage = ({ user, onLogout }) => {
                           Ausstehend
                         </Badge>
                       )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setDeleteDialog({ open: true, participant })}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
