@@ -409,6 +409,142 @@ async def update_settings(settings: Settings, current_user: Dict[str, Any] = Dep
     await db.settings.insert_one(settings.model_dump())
     return {"message": "Einstellungen erfolgreich aktualisiert"}
 
+@api_router.post("/settings/upload-logo")
+async def upload_logo(file: UploadFile = File(...), current_user: Dict[str, Any] = Depends(get_admin_user)):
+    try:
+        contents = await file.read()
+        base64_image = base64.b64encode(contents).decode('utf-8')
+        
+        # Update settings with logo
+        settings = await db.settings.find_one({}, {"_id": 0})
+        if not settings:
+            settings = Settings().model_dump()
+        
+        settings['school_logo_base64'] = f"data:{file.content_type};base64,{base64_image}"
+        
+        await db.settings.delete_many({})
+        await db.settings.insert_one(settings)
+        
+        return {"message": "Logo erfolgreich hochgeladen", "logo": settings['school_logo_base64']}
+    except Exception as e:
+        logger.error(f"Logo upload error: {e}")
+        raise HTTPException(status_code=500, detail="Fehler beim Hochladen des Logos")
+
+@api_router.post("/settings/test-ldap")
+async def test_ldap(test_data: Dict[str, str], current_user: Dict[str, Any] = Depends(get_admin_user)):
+    try:
+        settings = await db.settings.find_one({}, {"_id": 0})
+        if not settings or not settings.get("ldap_enabled"):
+            raise HTTPException(status_code=400, detail="LDAP ist nicht aktiviert")
+        
+        test_username = test_data.get("username", "")
+        test_password = test_data.get("password", "")
+        
+        if not test_username or not test_password:
+            raise HTTPException(status_code=400, detail="Benutzername und Passwort erforderlich")
+        
+        # Try LDAP connection
+        server_uri = f"{'ldaps' if settings.get('ldap_use_ssl') else 'ldap'}://{settings['ldap_server']}:{settings['ldap_port']}"
+        server = ldap3.Server(server_uri, get_info=ldap3.ALL, connect_timeout=5)
+        
+        # Test bind with service account
+        conn = ldap3.Connection(
+            server, 
+            user=settings['ldap_bind_dn'], 
+            password=settings['ldap_bind_password'],
+            auto_bind=True
+        )
+        
+        # Search for test user
+        user_filter = settings['ldap_user_filter'].replace('{username}', test_username)
+        conn.search(
+            settings['ldap_base_dn'], 
+            user_filter, 
+            attributes=[settings['ldap_mail_attr'], settings['ldap_display_attr']]
+        )
+        
+        if not conn.entries:
+            return {"success": False, "message": f"Benutzer '{test_username}' nicht gefunden"}
+        
+        user_entry = conn.entries[0]
+        user_dn = user_entry.entry_dn
+        
+        # Try to authenticate as user
+        user_conn = ldap3.Connection(server, user=user_dn, password=test_password)
+        if not user_conn.bind():
+            return {"success": False, "message": "Authentifizierung fehlgeschlagen - falsches Passwort"}
+        
+        # Success
+        mail_attr = settings.get('ldap_mail_attr', 'mail')
+        display_attr = settings.get('ldap_display_attr', 'displayName')
+        
+        email = str(getattr(user_entry, mail_attr)) if hasattr(user_entry, mail_attr) else "N/A"
+        name = str(getattr(user_entry, display_attr)) if hasattr(user_entry, display_attr) else "N/A"
+        
+        user_conn.unbind()
+        conn.unbind()
+        
+        return {
+            "success": True, 
+            "message": "LDAP-Verbindung erfolgreich",
+            "user_data": {
+                "dn": user_dn,
+                "email": email,
+                "name": name
+            }
+        }
+        
+    except ldap3.core.exceptions.LDAPException as e:
+        return {"success": False, "message": f"LDAP-Fehler: {str(e)}"}
+    except Exception as e:
+        logger.error(f"LDAP test error: {e}")
+        return {"success": False, "message": f"Fehler: {str(e)}"}
+
+@api_router.post("/settings/test-smtp")
+async def test_smtp(test_data: Dict[str, str], current_user: Dict[str, Any] = Depends(get_admin_user)):
+    try:
+        settings = await db.settings.find_one({}, {"_id": 0})
+        if not settings or not settings.get("smtp_enabled"):
+            raise HTTPException(status_code=400, detail="SMTP ist nicht aktiviert")
+        
+        test_email = test_data.get("email", current_user.get("email"))
+        
+        if not test_email:
+            raise HTTPException(status_code=400, detail="Test-E-Mail-Adresse erforderlich")
+        
+        # Try SMTP connection
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"{settings.get('smtp_from_name', 'MSO')} <{settings['smtp_from_email']}>"
+        msg['To'] = test_email
+        msg['Subject'] = "Test-E-Mail vom Fortbildungssystem"
+        
+        html = """<html><body>
+        <h2>Test-E-Mail erfolgreich!</h2>
+        <p>Diese E-Mail bestätigt, dass Ihre SMTP-Konfiguration korrekt ist.</p>
+        <p>Mit freundlichen Grüßen,<br>Ihr Fortbildungssystem</p>
+        </body></html>"""
+        
+        html_part = MIMEText(html, 'html', 'utf-8')
+        msg.attach(html_part)
+        
+        server = smtplib.SMTP(settings['smtp_server'], settings['smtp_port'], timeout=10)
+        if settings.get('smtp_use_tls', True):
+            server.starttls()
+        server.login(settings['smtp_username'], settings['smtp_password'])
+        server.send_message(msg)
+        server.quit()
+        
+        return {
+            "success": True,
+            "message": f"Test-E-Mail erfolgreich an {test_email} gesendet"
+        }
+        
+    except smtplib.SMTPException as e:
+        return {"success": False, "message": f"SMTP-Fehler: {str(e)}"}
+    except Exception as e:
+        logger.error(f"SMTP test error: {e}")
+        return {"success": False, "message": f"Fehler: {str(e)}"}
+
 # ===================== USER ROUTES =====================
 
 @api_router.get("/users", response_model=List[User])
