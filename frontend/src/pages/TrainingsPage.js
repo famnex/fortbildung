@@ -19,7 +19,7 @@ const TrainingsPage = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [selectedTraining, setSelectedTraining] = useState(null);
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
-  const [optionalAnswer, setOptionalAnswer] = useState("");
+  const [formResponses, setFormResponses] = useState({});
   const [registering, setRegistering] = useState(false);
 
   useEffect(() => {
