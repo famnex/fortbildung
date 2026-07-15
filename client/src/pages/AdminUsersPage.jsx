@@ -125,6 +125,23 @@ const AdminUsersPage = ({ user, onLogout }) => {
     }
   };
 
+  const toggleUserRole = async (targetUser) => {
+    if (targetUser.user_id === user.user_id) {
+      toast.error("Sie können Ihre eigene Rolle nicht ändern.");
+      return;
+    }
+    
+    const newRole = targetUser.role === "admin" ? "user" : "admin";
+    try {
+      await axios.put(`${API}/users/${targetUser.user_id}/role`, { role: newRole });
+      toast.success(`Rolle von ${targetUser.name} auf ${newRole === 'admin' ? 'Administrator' : 'Benutzer'} geändert.`);
+      fetchUsers();
+    } catch (error) {
+      console.error("Error toggling user role:", error);
+      toast.error(error.response?.data?.detail || "Fehler beim Ändern der Rolle.");
+    }
+  };
+
   const openEditDialog = (userToEdit) => {
     setFormData({
       email: userToEdit.email,
@@ -226,7 +243,14 @@ const AdminUsersPage = ({ user, onLogout }) => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge className={u.role === "admin" ? "bg-orange-100 text-orange-800" : "bg-blue-100 text-blue-800"}>
+                    <Badge 
+                      onClick={() => toggleUserRole(u)}
+                      className={`cursor-pointer select-none transition-all hover:scale-105 duration-150 ${
+                        u.role === "admin" 
+                          ? "bg-orange-100 text-orange-800 hover:bg-orange-200 border border-orange-200" 
+                          : "bg-blue-100 text-blue-800 hover:bg-blue-200 border border-blue-200"
+                      }`}
+                    >
                       {u.role === "admin" ? "Administrator" : "Benutzer"}
                     </Badge>
                     {u.auth_source === "local" && u.user_id !== user.user_id && (

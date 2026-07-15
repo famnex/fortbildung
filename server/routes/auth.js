@@ -87,13 +87,14 @@ router.post('/login-jwt', async (req, res) => {
     let payload;
     try {
       payload = jwt.verify(token, ssoSecret);
+      console.log('JWT SSO Login: Decoded payload:', JSON.stringify(payload, null, 2));
     } catch (err) {
       console.log('JWT SSO Login: Token verification failed:', err.message);
       return res.status(401).json({ detail: 'Ungültiges Token' });
     }
 
     const email = payload.email || payload.sub;
-    const name = payload.display_name || payload.name || payload.username || email;
+    const name = payload.display_name || payload.displayName || payload.displayname || payload.name || payload.cn || payload.username || email;
 
     if (!email) {
       console.log('JWT SSO Login: Email not found in token payload:', payload);
