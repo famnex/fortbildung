@@ -25,14 +25,50 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      fetchUser();
-    } else {
-      setLoading(false);
-    }
+    const handleUrlToken = async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlToken = urlParams.get("token") || urlParams.get("jwt");
+      
+      if (urlToken) {
+        try {
+          setLoading(true);
+          const response = await axios.post(`${API}/auth/login-jwt`, { token: urlToken });
+          const { token, user: userData } = response.data;
+          
+          localStorage.setItem("token", token);
+          axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+          setUser(userData);
+          
+          // Clear query params from URL
+          urlParams.delete("token");
+          urlParams.delete("jwt");
+          const newSearch = urlParams.toString();
+          const newUrl = `${window.location.pathname}${newSearch ? "?" + newSearch : ""}${window.location.hash}`;
+          window.history.replaceState({}, document.title, newUrl);
+        } catch (error) {
+          console.error("JWT login failed:", error);
+          const existingToken = localStorage.getItem("token");
+          if (existingToken) {
+            axios.defaults.headers.common["Authorization"] = `Bearer ${existingToken}`;
+            await fetchUser();
+          } else {
+            setLoading(false);
+          }
+        }
+      } else {
+        const token = localStorage.getItem("token");
+        if (token) {
+          axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+          await fetchUser();
+        } else {
+          setLoading(false);
+        }
+      }
+    };
+
+    handleUrlToken();
   }, []);
+
 
   const fetchUser = async () => {
     try {

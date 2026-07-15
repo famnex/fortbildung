@@ -6,7 +6,9 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import asyncio
 import logging
+
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional, Dict, Any
@@ -82,9 +84,14 @@ class Settings(BaseModel):
     smtp_from_name: str = "MSO Fortbildungssystem"
     smtp_use_tls: bool = True
     
+    # JWT SSO Settings
+    jwt_sso_enabled: bool = False
+    jwt_sso_secret: str = ""
+    
     # School Info
     school_name: str = "MSO - Fortbildungssystem"
     school_logo_base64: str = ""
+
 
 class User(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -117,6 +124,10 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     token: str
     user: Dict[str, Any]
+
+class LoginJWTRequest(BaseModel):
+    token: str
+
 
 class TrainingDate(BaseModel):
     date_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -394,7 +405,70 @@ async def login(login_data: LoginRequest):
     
     raise HTTPException(status_code=401, detail="Ungültige Anmeldedaten")
 
+@api_router.post("/auth/login-jwt", response_model=LoginResponse)
+async def login_jwt(data: LoginJWTRequest):
+    # Fetch settings to get JWT secret and enabled status
+    settings = await db.settings.find_one({}, {"_id": 0})
+    if not settings or not settings.get("jwt_sso_enabled"):
+        raise HTTPException(status_code=400, detail="JWT SSO ist nicht aktiviert")
+        
+    sso_secret = settings.get("jwt_sso_secret")
+    if not sso_secret:
+        raise HTTPException(status_code=500, detail="JWT SSO Secret ist nicht konfiguriert")
+        
+    try:
+        # Decode the token using the settings secret
+        payload = jwt.decode(data.token, sso_secret, algorithms=[ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token abgelaufen")
+    except Exception as e:
+        logger.error(f"JWT login decode error: {e}")
+        raise HTTPException(status_code=401, detail="Ungültiges Token")
+
+    # Extract user info
+    email = payload.get("email")
+    name = payload.get("display_name") or payload.get("name") or email
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="E-Mail-Adresse im Token nicht gefunden")
+        
+    # Find user in database
+    user = await db.users.find_one({"email": email}, {"_id": 0})
+    
+    if not user:
+        # Create user automatically
+        user_obj = User(
+            email=email,
+            name=name,
+            role="user",
+            auth_source="jwt"
+        )
+        await db.users.insert_one(user_obj.model_dump())
+        user = user_obj.model_dump()
+        logger.info(f"User automatically created via JWT login: {email}")
+    else:
+        # Merge: update name if changed, keep existing auth_source and other fields
+        update_data = {}
+        if user.get("name") != name:
+            update_data["name"] = name
+            user["name"] = name
+            
+        update_data["last_login"] = datetime.now(timezone.utc).isoformat()
+        user["last_login"] = update_data["last_login"]
+        
+        await db.users.update_one(
+            {"user_id": user["user_id"]},
+            {"$set": update_data}
+        )
+        logger.info(f"User merged/logged in via JWT: {email}")
+
+    # Generate session token
+    session_token = create_access_token({"sub": user["user_id"]})
+    user.pop("password_hash", None)
+    return LoginResponse(token=session_token, user=user)
+
 @api_router.get("/auth/me")
+
 async def get_me(current_user: Dict[str, Any] = Depends(get_current_user)):
     current_user.pop("password_hash", None)
     return current_user
@@ -413,6 +487,73 @@ async def update_settings(settings: Settings, current_user: Dict[str, Any] = Dep
     await db.settings.delete_many({})
     await db.settings.insert_one(settings.model_dump())
     return {"message": "Einstellungen erfolgreich aktualisiert"}
+
+@api_router.post("/settings/update")
+async def trigger_update(current_user: Dict[str, Any] = Depends(get_admin_user)):
+    async def run_update_commands():
+        repo_dir = Path(__file__).parent.parent.resolve()
+        update_bat = repo_dir / "update.bat"
+        
+        yield "=== System Update gestartet ===\n"
+        yield f"Verzeichnis: {repo_dir}\n"
+        
+        if update_bat.exists():
+            yield "Benutzerdefiniertes Update-Skript 'update.bat' gefunden.\n"
+            commands = ["update.bat"]
+        else:
+            yield "Standard-Update-Prozess wird ausgeführt (keine 'update.bat' vorhanden).\n"
+            commands = [
+                "git pull",
+                "python -m pip install -r backend/requirements.txt"
+            ]
+            
+        for cmd in commands:
+            yield f"\n> Führe aus: {cmd}\n"
+            try:
+                process = await asyncio.create_subprocess_shell(
+                    cmd,
+                    cwd=str(repo_dir),
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                
+                # We read stdout and stderr asynchronously
+                async def read_stream(stream):
+                    output = []
+                    while True:
+                        line = await stream.readline()
+                        if not line:
+                            break
+                        decoded = line.decode('utf-8', errors='replace')
+                        output.append(decoded)
+                    return "".join(output)
+                    
+                stdout_task = asyncio.create_task(read_stream(process.stdout))
+                stderr_task = asyncio.create_task(read_stream(process.stderr))
+                
+                await process.wait()
+                
+                stdout_val = await stdout_task
+                stderr_val = await stderr_task
+                
+                if stdout_val:
+                    yield stdout_val
+                if stderr_val:
+                    yield f"[FEHLER] {stderr_val}"
+                    
+                yield f"\nBefehl beendet mit Code: {process.returncode}\n"
+                
+                if process.returncode != 0:
+                    yield "\n=== UPDATE ABGEBROCHEN wegen Fehler ===\n"
+                    return
+            except Exception as e:
+                yield f"\n[Fehler beim Ausführen]: {e}\n"
+                yield "\n=== UPDATE ABGEBROCHEN ===\n"
+                return
+                
+        yield "\n=== UPDATE ERFOLGREICH BEENDET ===\n"
+
+    return StreamingResponse(run_update_commands(), media_type="text/plain")
 
 @api_router.post("/settings/upload-logo")
 async def upload_logo(file: UploadFile = File(...), current_user: Dict[str, Any] = Depends(get_admin_user)):

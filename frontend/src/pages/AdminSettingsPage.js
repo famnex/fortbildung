@@ -18,7 +18,10 @@ const AdminSettingsPage = ({ user, onLogout }) => {
   const [testing, setTesting] = useState(false);
   const [testDialog, setTestDialog] = useState({ open: false, type: null });
   const [testCredentials, setTestCredentials] = useState({ username: "", password: "", email: "" });
+  const [updatingSystem, setUpdatingSystem] = useState(false);
+  const [updateLogs, setUpdateLogs] = useState("");
   const fileInputRef = useRef(null);
+
   
   const [settings, setSettings] = useState({
     // LDAP
@@ -43,10 +46,14 @@ const AdminSettingsPage = ({ user, onLogout }) => {
     smtp_from_email: "",
     smtp_from_name: "MSO Fortbildungssystem",
     smtp_use_tls: true,
+    // JWT SSO
+    jwt_sso_enabled: false,
+    jwt_sso_secret: "",
     // School
     school_name: "MSO - Fortbildungssystem",
     school_logo_base64: ""
   });
+
 
   useEffect(() => {
     fetchSettings();
@@ -69,6 +76,44 @@ const AdminSettingsPage = ({ user, onLogout }) => {
       ...settings,
       [field]: value
     });
+  };
+
+  const handleRunUpdate = async () => {
+    setUpdatingSystem(true);
+    setUpdateLogs("Update wird gestartet...\n");
+    
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API}/settings/update`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        setUpdateLogs(prev => prev + `Fehler: ${response.status} - ${errorText}\n`);
+        setUpdatingSystem(false);
+        return;
+      }
+      
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        setUpdateLogs(prev => prev + chunk);
+      }
+      setUpdateLogs(prev => prev + "\n[FERTIG]\n");
+    } catch (error) {
+      console.error("Update error:", error);
+      setUpdateLogs(prev => prev + `Systemfehler: ${error.message}\n`);
+    } finally {
+      setUpdatingSystem(false);
+    }
   };
 
   const handleSave = async () => {
@@ -198,11 +243,13 @@ const AdminSettingsPage = ({ user, onLogout }) => {
         </div>
 
         <Tabs defaultValue="ldap" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="ldap">LDAP</TabsTrigger>
             <TabsTrigger value="smtp">SMTP</TabsTrigger>
             <TabsTrigger value="school">Schule</TabsTrigger>
+            <TabsTrigger value="jwt_sso">JWT SSO</TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="ldap" className="space-y-4">
             <Card className="border-0 shadow-md">
@@ -550,7 +597,65 @@ const AdminSettingsPage = ({ user, onLogout }) => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="jwt_sso" className="space-y-4">
+            <Card className="border-0 shadow-md">
+              <CardHeader>
+                <CardTitle>JWT SSO-Konfiguration</CardTitle>
+                <CardDescription>
+                  Aktivieren und konfigurieren Sie Single Sign-On via JWT (JSON Web Token)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="jwt_sso_enabled" className="text-base font-medium">JWT SSO aktivieren</Label>
+                    <p className="text-sm text-slate-500">Erlaubt Benutzern das Anmelden über einen JWT-Token in der URL</p>
+                  </div>
+                  <Switch
+                    id="jwt_sso_enabled"
+                    checked={settings.jwt_sso_enabled}
+                    onCheckedChange={(checked) => handleChange("jwt_sso_enabled", checked)}
+                    data-testid="jwt-sso-enabled-switch"
+                  />
+                </div>
+
+                {settings.jwt_sso_enabled && (
+                  <div className="space-y-4 pt-4 border-t border-slate-100">
+                    <div className="space-y-2">
+                      <Label htmlFor="jwt_sso_secret">JWT Secret / Pre-Shared Key *</Label>
+                      <Input
+                        id="jwt_sso_secret"
+                        type="password"
+                        placeholder="Geben Sie den Schlüssel ein, mit dem die Tokens signiert werden"
+                        value={settings.jwt_sso_secret || ""}
+                        onChange={(e) => handleChange("jwt_sso_secret", e.target.value)}
+                        data-testid="jwt-sso-secret-input"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Dieser Schlüssel muss dem Identity Provider bekannt sein, um die Signaturen zu verifizieren.
+                      </p>
+                    </div>
+
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-100 space-y-2">
+                      <h4 className="text-sm font-semibold text-blue-900">Integration mit Ihrem Identity Provider (IDP)</h4>
+                      <p className="text-sm text-blue-800">
+                        Geben Sie beim IDP folgenden Weiterleitungs-Link an:
+                      </p>
+                      <code className="block bg-white p-2 rounded border border-blue-200 text-xs font-mono select-all">
+                        {window.location.origin}/?token=JWT_TOKEN
+                      </code>
+                      <p className="text-xs text-blue-700">
+                        Der Token muss im Payload die Felder <code className="bg-blue-100 px-1 py-0.5 rounded font-semibold">email</code> (E-Mail des Nutzers), <code className="bg-blue-100 px-1 py-0.5 rounded font-semibold">display_name</code> (Vollständiger Name) und <code className="bg-blue-100 px-1 py-0.5 rounded font-semibold">username</code> (Benutzername) enthalten.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
+
 
         <div className="flex justify-end">
           <Button
