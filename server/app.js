@@ -99,8 +99,8 @@ async function startServer() {
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
     
-    // Sync models
-    await sequelize.sync();
+    // Sync models and apply schema changes
+    await sequelize.sync({ alter: true });
     console.log('Database synchronized.');
 
     // Initialize Default Admin
