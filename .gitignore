@@ -81,3 +81,7 @@ android-sdk/ -e
 # Environment files
 *.env
 *.env.*
+
+# SQLite database
+server/database.sqlite
+server/database.sqlite-journal
