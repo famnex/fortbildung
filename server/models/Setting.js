@@ -98,6 +98,10 @@ const Setting = sequelize.define('Setting', {
     type: DataTypes.STRING,
     defaultValue: ''
   },
+  jwt_sso_url: {
+    type: DataTypes.STRING,
+    defaultValue: ''
+  },
   // School Info
   school_name: {
     type: DataTypes.STRING,

@@ -49,6 +49,7 @@ const AdminSettingsPage = ({ user, onLogout }) => {
     // JWT SSO
     jwt_sso_enabled: false,
     jwt_sso_secret: "",
+    jwt_sso_url: "",
     // School
     school_name: "MSO - Fortbildungssystem",
     school_logo_base64: ""
@@ -634,6 +635,21 @@ const AdminSettingsPage = ({ user, onLogout }) => {
                       />
                       <p className="text-xs text-slate-500">
                         Dieser Schlüssel muss dem Identity Provider bekannt sein, um die Signaturen zu verifizieren.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="jwt_sso_url">Identity Provider Login-URL (Redirect)</Label>
+                      <Input
+                        id="jwt_sso_url"
+                        type="text"
+                        placeholder="https://cloud.mso-hef.de/novus/api/tiles/sso/15"
+                        value={settings.jwt_sso_url || ""}
+                        onChange={(e) => handleChange("jwt_sso_url", e.target.value)}
+                        data-testid="jwt-sso-url-input"
+                      />
+                      <p className="text-xs text-slate-500">
+                        Die URL des Identity Providers, auf die Benutzer zum Einloggen weitergeleitet werden.
                       </p>
                     </div>
 

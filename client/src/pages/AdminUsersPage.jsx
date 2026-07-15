@@ -232,6 +232,9 @@ const AdminUsersPage = ({ user, onLogout }) => {
                         {u.auth_source === "local" && (
                           <Badge variant="outline" className="text-xs">Lokal</Badge>
                         )}
+                        {u.auth_source === "jwt" && (
+                          <Badge variant="outline" className="text-xs">SSO</Badge>
+                        )}
                         {u.user_id === user.user_id && (
                           <Badge variant="secondary" className="text-xs">Sie</Badge>
                         )}

@@ -138,4 +138,32 @@ router.get('/me', authenticateToken, (req, res) => {
   res.json(user);
 });
 
+// GET /api/auth/login-config (Public endpoint)
+router.get('/login-config', async (req, res) => {
+  try {
+    const settings = await Setting.findOne();
+    const ldapEnabled = settings ? settings.ldap_enabled : false;
+    const jwtSsoEnabled = settings ? settings.jwt_sso_enabled : false;
+    const ssoLoginUrl = settings ? settings.jwt_sso_url : '';
+
+    const nonLocalAdmin = await User.findOne({
+      where: {
+        role: 'admin',
+        auth_source: {
+          [require('sequelize').Op.ne]: 'local'
+        }
+      }
+    });
+
+    res.json({
+      sso_or_ldap_active: ldapEnabled || jwtSsoEnabled,
+      non_local_admin_exists: !!nonLocalAdmin,
+      sso_login_url: ssoLoginUrl || ''
+    });
+  } catch (error) {
+    console.error('Error fetching login config:', error);
+    res.status(500).json({ detail: 'Fehler beim Laden der Login-Konfiguration' });
+  }
+});
+
 module.exports = router;
