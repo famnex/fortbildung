@@ -73,6 +73,7 @@ function App() {
           localStorage.setItem("token", token);
           axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           setUser(userData);
+          setLoading(false);
           
           // Clear query params from URL
           urlParams.delete("token");
