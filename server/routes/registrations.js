@@ -4,8 +4,8 @@ const { Registration, Training, User } = require('../models');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { sendEmail } = require('../utils/email');
 
-// GET /api/registrations
-router.get('/', authenticateToken, async (req, res) => {
+// GET /api/registrations or /api/registrations/my
+router.get(['/', '/my'], authenticateToken, async (req, res) => {
   try {
     const registrations = await Registration.findAll({
       where: { user_id: req.user.user_id }
