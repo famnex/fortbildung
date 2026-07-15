@@ -38,9 +38,14 @@ app.use('/fortbildung/api/admin', logRoutes);
 const clientDistPath = path.join(__dirname, '../client/dist');
 app.use('/fortbildung', express.static(clientDistPath));
 
-// Redirect / to /fortbildung
+// Redirect / to /fortbildung/
 app.get('/', (req, res) => {
-  res.redirect('/fortbildung');
+  res.redirect('/fortbildung/');
+});
+
+// Explicitly serve index.html for /fortbildung and /fortbildung/
+app.get(['/fortbildung', '/fortbildung/'], (req, res) => {
+  res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 // React Router Fallback for client-side routing
