@@ -62,7 +62,7 @@ function App() {
   useEffect(() => {
     const handleUrlToken = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      const urlToken = urlParams.get("token") || urlParams.get("jwt");
+      const urlToken = urlParams.get("token") || urlParams.get("jwt") || urlParams.get("sso_token");
       
       if (urlToken) {
         try {
@@ -77,6 +77,7 @@ function App() {
           // Clear query params from URL
           urlParams.delete("token");
           urlParams.delete("jwt");
+          urlParams.delete("sso_token");
           const newSearch = urlParams.toString();
           const newUrl = `${window.location.pathname}${newSearch ? "?" + newSearch : ""}${window.location.hash}`;
           window.history.replaceState({}, document.title, newUrl);
