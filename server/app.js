@@ -99,8 +99,16 @@ async function startServer() {
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
     
-    // Sync models and apply schema changes
-    await sequelize.sync({ alter: true });
+    // Natively add missing columns to settings table for SQLite compatibility
+    try {
+      await sequelize.query("ALTER TABLE settings ADD COLUMN jwt_sso_url TEXT;");
+      console.log('Database: Added missing column jwt_sso_url to settings table.');
+    } catch (e) {
+      // Column already exists, safe to ignore
+    }
+    
+    // Sync models
+    await sequelize.sync();
     console.log('Database synchronized.');
 
     // Initialize Default Admin
