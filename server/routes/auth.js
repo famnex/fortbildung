@@ -66,17 +66,20 @@ router.post('/login', async (req, res) => {
 router.post('/login-jwt', async (req, res) => {
   const { token } = req.body;
   if (!token) {
+    console.log('JWT SSO Login: Missing token in body.');
     return res.status(400).json({ detail: 'Token erforderlich' });
   }
 
   try {
     const settings = await Setting.findOne();
     if (!settings || !settings.jwt_sso_enabled) {
+      console.log('JWT SSO Login: JWT SSO is not enabled in settings.');
       return res.status(400).json({ detail: 'JWT SSO ist nicht aktiviert' });
     }
 
     const ssoSecret = settings.jwt_sso_secret;
     if (!ssoSecret) {
+      console.log('JWT SSO Login: Secret key is not configured in settings.');
       return res.status(500).json({ detail: 'JWT SSO Secret ist nicht konfiguriert' });
     }
 
@@ -85,13 +88,15 @@ router.post('/login-jwt', async (req, res) => {
     try {
       payload = jwt.verify(token, ssoSecret);
     } catch (err) {
+      console.log('JWT SSO Login: Token verification failed:', err.message);
       return res.status(401).json({ detail: 'Ungültiges Token' });
     }
 
     const email = payload.email || payload.sub;
-    const name = payload.display_name || payload.name || email;
+    const name = payload.display_name || payload.name || payload.username || email;
 
     if (!email) {
+      console.log('JWT SSO Login: Email not found in token payload:', payload);
       return res.status(400).json({ detail: 'E-Mail-Adresse im Token nicht gefunden' });
     }
 

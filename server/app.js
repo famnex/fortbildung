@@ -23,6 +23,7 @@ const PORT = process.env.PORT || 3018;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // API Routes
 app.use('/fortbildung/api/auth', authRoutes);
