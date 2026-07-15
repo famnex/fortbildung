@@ -94,7 +94,17 @@ router.post('/login-jwt', async (req, res) => {
     }
 
     const email = payload.email || payload.sub;
-    const name = payload.display_name || payload.displayName || payload.displayname || payload.name || payload.cn || payload.username || email;
+    let name = payload.display_name || payload.displayName || payload.displayname || payload.name || payload.cn || payload.username || email;
+
+    // Resolve name from LDAP if is_ldap is true
+    if (payload.is_ldap && payload.username && settings && settings.ldap_enabled) {
+      const { getLDAPUserDisplayName } = require('../utils/ldap');
+      const ldapName = await getLDAPUserDisplayName(settings, payload.username);
+      if (ldapName) {
+        name = ldapName;
+        console.log(`JWT SSO Login: Resolved display name from LDAP: ${ldapName}`);
+      }
+    }
 
     if (!email) {
       console.log('JWT SSO Login: Email not found in token payload:', payload);

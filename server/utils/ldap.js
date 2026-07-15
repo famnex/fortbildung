@@ -58,4 +58,45 @@ async function authenticateLDAP(settings, username, password) {
   });
 }
 
-module.exports = { authenticateLDAP };
+async function getLDAPUserDisplayName(settings, username) {
+  if (!settings || !settings.ldap_enabled) {
+    return null;
+  }
+
+  const url = `${settings.ldap_use_ssl ? 'ldaps' : 'ldap'}://${settings.ldap_server}:${settings.ldap_port}`;
+  const config = {
+    url: url,
+    baseDN: settings.ldap_base_dn,
+    username: settings.ldap_bind_dn,
+    password: settings.ldap_bind_password,
+  };
+
+  return new Promise((resolve) => {
+    try {
+      const ad = new ActiveDirectory(config);
+      const userAttr = settings.ldap_user_attr || 'sAMAccountName';
+      
+      ad.findUser(username, (err, user) => {
+        if (err || !user) {
+          const filter = `(${userAttr}=${username})`;
+          ad.find(filter, (findErr, results) => {
+            if (findErr || !results || !results.users || results.users.length === 0) {
+              return resolve(null);
+            }
+            const foundUser = results.users[0];
+            const displayAttr = settings.ldap_display_attr || 'displayName';
+            resolve(foundUser[displayAttr] || foundUser.cn || null);
+          });
+          return;
+        }
+        const displayAttr = settings.ldap_display_attr || 'displayName';
+        resolve(user[displayAttr] || user.cn || null);
+      });
+    } catch (e) {
+      console.error('LDAP lookup error:', e);
+      resolve(null);
+    }
+  });
+}
+
+module.exports = { authenticateLDAP, getLDAPUserDisplayName };
