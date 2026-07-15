@@ -1,18 +1,18 @@
-# Datenbank-Dokumentation (MongoDB)
+# Datenbank-Dokumentation (SQLite / Sequelize)
 
-Dieses Dokument beschreibt die Struktur der MongoDB-Datenbank für das Fortbildungssystem.
+Dieses Dokument beschreibt die Struktur der SQLite-Datenbank für das Fortbildungssystem. Die Datenbankdatei liegt unter `server/database.sqlite` und wird über Sequelize verwaltet.
 
-## Collections
+## Tabellen und Modelle
 
-### 1. `users`
+### 1. `users` (User Model)
 Enthält alle Benutzerdaten (lokale Benutzer, LDAP-Benutzer und JWT-Benutzer).
 
-| Feld | Typ | Beschreibung |
+| Spalte | Typ | Beschreibung |
 | :--- | :--- | :--- |
-| `user_id` | String (UUID) | Eindeutige ID des Benutzers |
-| `email` | String | E-Mail-Adresse des Benutzers |
+| `user_id` | UUID (Primary Key) | Eindeutige ID des Benutzers |
+| `email` | String (Unique) | E-Mail-Adresse des Benutzers |
 | `name` | String | Vollständiger Name |
-| `password_hash` | String (Optional) | Bcrypt-Hash des Passworts (nur für `auth_source: "local"`) |
+| `password_hash` | String (Null/Optional)| Bcrypt-Hash des Passworts (nur für `auth_source: "local"`) |
 | `role` | String | Rolle des Benutzers (`admin` oder `user`) |
 | `auth_source` | String | Quelle der Authentifizierung (`local`, `ldap` oder `jwt`) |
 | `created_at` | String (ISO Date) | Erstellungszeitpunkt |
@@ -20,11 +20,12 @@ Enthält alle Benutzerdaten (lokale Benutzer, LDAP-Benutzer und JWT-Benutzer).
 
 ---
 
-### 2. `settings`
+### 2. `settings` (Setting Model)
 Globale Systemeinstellungen (LDAP, SMTP, Schul-Informationen).
 
-| Feld | Typ | Beschreibung |
+| Spalte | Typ | Beschreibung |
 | :--- | :--- | :--- |
+| `id` | Integer (Primary Key) | Auto-Increment ID |
 | **LDAP Settings** | | |
 | `ldap_enabled` | Boolean | Aktiviert/Deaktiviert LDAP-Login |
 | `ldap_server` | String | Server-Adresse |
@@ -52,60 +53,58 @@ Globale Systemeinstellungen (LDAP, SMTP, Schul-Informationen).
 | `jwt_sso_secret` | String | Secret/Schlüssel zur Signaturvalidierung |
 | **School Info** | | |
 | `school_name` | String | Name der Schule |
-| `school_logo_base64`| String | Schul-Logo als Base64-String |
-
+| `school_logo_base64`| Text | Schul-Logo als Base64-String |
 
 ---
 
-### 3. `trainings`
+### 3. `trainings` (Training Model)
 Fortbildungsangebote.
 
-| Feld | Typ | Beschreibung |
+| Spalte | Typ | Beschreibung |
 | :--- | :--- | :--- |
-| `training_id` | String (UUID) | Eindeutige ID |
+| `training_id` | UUID (Primary Key) | Eindeutige ID |
 | `title` | String | Titel der Fortbildung |
-| `description` | String | Beschreibung |
-| `requirements` | String | Voraussetzungen |
-| `materials` | String | Benötigte Materialien |
+| `description` | Text | Beschreibung |
+| `requirements` | Text | Voraussetzungen |
+| `materials` | Text | Benötigte Materialien |
 | `location` | String | Veranstaltungsort |
-| `dates` | Array (Object) | Liste von Terminen (start_datetime, end_datetime) |
+| `dates` | Text (JSON-String) | Liste von Terminen (start_datetime, end_datetime) |
 | `max_participants` | Integer | Maximale Teilnehmeranzahl |
 | `registration_deadline`| String (ISO Date)| Anmeldefrist |
-| `created_by` | String (UUID) | ID des Erstellers |
+| `created_by` | String | ID des Erstellers |
 | `created_by_name` | String | Name des Erstellers |
 | `status` | String | Status (`draft` oder `published`) |
-| `form_fields` | Array (Object) | Benutzerdefinierte Formularfelder |
+| `form_fields` | Text (JSON-String) | Benutzerdefinierte Formularfelder |
 | `created_at` | String (ISO Date)| Erstellungszeitpunkt |
 | `updated_at` | String (ISO Date)| Letztes Update |
-| `current_participants`| Integer | Aktuelle Teilnehmeranzahl |
 
 ---
 
-### 4. `registrations`
+### 4. `registrations` (Registration Model)
 Anmeldungen zu Fortbildungen.
 
-| Feld | Typ | Beschreibung |
+| Spalte | Typ | Beschreibung |
 | :--- | :--- | :--- |
-| `registration_id` | String (UUID) | Eindeutige ID |
-| `training_id` | String (UUID) | ID der Fortbildung |
-| `user_id` | String (UUID) | ID des Benutzers |
+| `registration_id` | UUID (Primary Key) | Eindeutige ID |
+| `training_id` | String | ID der Fortbildung |
+| `user_id` | String | ID des Benutzers |
 | `user_name` | String | Name des angemeldeten Benutzers |
 | `user_email` | String | E-Mail-Adresse des angemeldeten Benutzers |
 | `status` | String | Status (`registered`, `waitlist`, `cancelled`) |
-| `form_responses` | Dict | Antworten auf benutzerdefinierte Formularfelder |
+| `form_responses` | Text (JSON-String) | Antworten auf benutzerdefinierte Formularfelder |
 | `registered_at` | String (ISO Date)| Anmeldezeitpunkt |
 | `cancelled_at` | String (ISO Date)| Stornierungszeitpunkt |
 
 ---
 
-### 5. `participations`
+### 5. `participations` (Participation Model)
 Teilnahmebestätigungen.
 
-| Feld | Typ | Beschreibung |
+| Spalte | Typ | Beschreibung |
 | :--- | :--- | :--- |
-| `participation_id` | String (UUID) | Eindeutige ID |
-| `training_id` | String (UUID) | ID der Fortbildung |
-| `user_id` | String (UUID) | ID des Benutzers |
+| `participation_id` | UUID (Primary Key) | Eindeutige ID |
+| `training_id` | String | ID der Fortbildung |
+| `user_id` | String | ID des Benutzers |
 | `user_name` | String | Name des Teilnehmers |
 | `confirmed` | Boolean | Teilnahme bestätigt |
 | `certificate_generated`| Boolean | Zertifikat generiert |
@@ -113,17 +112,17 @@ Teilnahmebestätigungen.
 
 ---
 
-### 6. `change_logs`
+### 6. `change_logs` (ChangeLog Model)
 Verlauf von Änderungen an Fortbildungen.
 
-| Feld | Typ | Beschreibung |
+| Spalte | Typ | Beschreibung |
 | :--- | :--- | :--- |
-| `log_id` | String (UUID) | Eindeutige ID |
-| `training_id` | String (UUID) | ID der Fortbildung |
-| `user_id` | String (UUID) | ID des Verursachers |
+| `log_id` | UUID (Primary Key) | Eindeutige ID |
+| `training_id` | String | ID der Fortbildung |
+| `user_id` | String | ID des Verursachers |
 | `user_name` | String | Name des Verursachers |
 | `action` | String | Durchgeführte Aktion |
-| `changes` | Dict | Geänderte Felder |
+| `changes` | Text (JSON-String) | Geänderte Felder |
 | `created_at` | String (ISO Date)| Protokollzeitpunkt |
 
 ---
@@ -131,7 +130,5 @@ Verlauf von Änderungen an Fortbildungen.
 ## Versions-Historie & Migrationen
 
 ### Update 2026-07-15
-* **Collection `users`**: Das Feld `auth_source` unterstützt nun zusätzlich den Wert `"jwt"`, um Benutzer zu kennzeichnen, die sich über ein externes JWT-Token authentifiziert haben.
-* **User-Merging**: Falls ein Benutzer mit der übermittelten E-Mail bereits existiert (z.B. per LDAP angelegt), wird kein Duplikat erzeugt. Stattdessen wird der Benutzer aktualisiert (Anzeigename) und eingeloggt.
-* **Collection `settings`**: Die Felder `jwt_sso_enabled` (Boolean) und `jwt_sso_secret` (String) wurden hinzugefügt, um die SSO-Konfiguration über die Administrationsoberfläche zu verwalten.
-
+* **Migration auf SQLite & Sequelize (Node.js)**: Die Datenbank wurde vollständig von MongoDB auf eine relationale SQLite-Struktur umgestellt.
+* **JSON-Serialisierung**: Komplexe Felder (wie `dates`, `form_fields`, `form_responses` und `changes`) werden in SQLite als serialisierte JSON-Strings (`TEXT`) abgelegt und im Sequelize-Modell über Getter/Setter automatisch konvertiert.
