@@ -29,6 +29,11 @@ const LoginPage = ({ onLogin }) => {
       }
     };
     fetchLoginConfig();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("local") === "true") {
+      setShowLocalForm(true);
+    }
   }, []);
 
   const handleLogin = async (e) => {
@@ -81,15 +86,6 @@ const LoginPage = ({ onLogin }) => {
               >
                 Über Identity Provider Anmelden
               </Button>
-              
-              <div className="pt-4 border-t border-slate-100">
-                <button
-                  onClick={() => setShowLocalForm(true)}
-                  className="text-xs text-slate-400 hover:text-slate-600 transition"
-                >
-                  Lokale Anmeldung
-                </button>
-              </div>
             </div>
           ) : (
             <form onSubmit={handleLogin} className="space-y-5">
