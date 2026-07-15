@@ -16,7 +16,7 @@ import AdminLogsPage from "@/pages/AdminLogsPage";
 import { Toaster } from "@/components/ui/sonner";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "";
-const API = `${BACKEND_URL}/api`;
+const API = `${BACKEND_URL}/fortbildung/api`;
 
 export { API };
 

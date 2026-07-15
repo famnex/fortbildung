@@ -25,14 +25,14 @@ app.use(cors());
 app.use(express.json());
 
 // API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/trainings', trainingRoutes);
-app.use('/api/registrations', registrationRoutes);
-app.use('/api/participations', participationRoutes);
-app.use('/api/pdfs', pdfRoutes);
-app.use('/api/admin', logRoutes);
+app.use('/fortbildung/api/auth', authRoutes);
+app.use('/fortbildung/api/settings', settingsRoutes);
+app.use('/fortbildung/api/users', userRoutes);
+app.use('/fortbildung/api/trainings', trainingRoutes);
+app.use('/fortbildung/api/registrations', registrationRoutes);
+app.use('/fortbildung/api/participations', participationRoutes);
+app.use('/fortbildung/api/pdfs', pdfRoutes);
+app.use('/fortbildung/api/admin', logRoutes);
 
 // Static Hosting of built React files (client/dist) under /fortbildung
 const clientDistPath = path.join(__dirname, '../client/dist');
