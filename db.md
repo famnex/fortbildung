@@ -55,6 +55,8 @@ Globale Systemeinstellungen (LDAP, SMTP, Schul-Informationen).
 | **School Info** | | |
 | `school_name` | String | Name der Schule |
 | `school_logo_base64`| Text | Schul-Logo als Base64-String |
+| `logout_text` | String | Text des Abmelde-Buttons (Standard: "Abmelden") |
+| `logout_url` | String | Externe URL zur Weiterleitung nach dem Abmelden (Optional) |
 
 ---
 
@@ -137,6 +139,8 @@ Verlauf von Änderungen an Fortbildungen.
 ### Update 2026-07-17
 * **JWT SSO Redirect URL**: Spalte `jwt_sso_url` (Typ: `TEXT`) zur Tabelle `settings` hinzugefügt. Wird beim Serverstart automatisch über eine rohe SQL-Query angelegt, falls noch nicht vorhanden (`ALTER TABLE settings ADD COLUMN jwt_sso_url TEXT;`).
 * **Veranstaltungstypen (Interne/Externe)**: Spalten `type` (Typ: `TEXT DEFAULT 'internal'`), `external_link` (Typ: `TEXT DEFAULT ''`), `external_provider` (Typ: `TEXT DEFAULT ''`) und `costs` (Typ: `TEXT DEFAULT ''`) zur Tabelle `trainings` hinzugefügt. Wird beim Serverstart automatisch angelegt. Spalten `description`, `location`, `max_participants` und `registration_deadline` wurden auf optional gesetzt.
+* **Custom Abmelde-Schaltfläche**: Spalten `logout_text` (Typ: `TEXT DEFAULT 'Abmelden'`) und `logout_url` (Typ: `TEXT DEFAULT ''`) zur Tabelle `settings` hinzugefügt. Wird beim Serverstart automatisch angelegt.
+
 
 
 

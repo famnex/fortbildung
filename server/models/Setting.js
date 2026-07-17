@@ -110,6 +110,14 @@ const Setting = sequelize.define('Setting', {
   school_logo_base64: {
     type: DataTypes.TEXT,
     defaultValue: ''
+  },
+  logout_text: {
+    type: DataTypes.STRING,
+    defaultValue: 'Abmelden'
+  },
+  logout_url: {
+    type: DataTypes.STRING,
+    defaultValue: ''
   }
 }, {
   timestamps: false,

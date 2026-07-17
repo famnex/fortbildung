@@ -124,6 +124,20 @@ async function startServer() {
     }
 
     try {
+      await sequelize.query("ALTER TABLE settings ADD COLUMN logout_text TEXT DEFAULT 'Abmelden';");
+      console.log('Database: Added missing column logout_text to settings table.');
+    } catch (e) {
+      // Column already exists, safe to ignore
+    }
+
+    try {
+      await sequelize.query("ALTER TABLE settings ADD COLUMN logout_url TEXT DEFAULT '';");
+      console.log('Database: Added missing column logout_url to settings table.');
+    } catch (e) {
+      // Column already exists, safe to ignore
+    }
+
+    try {
       await sequelize.query("ALTER TABLE trainings ADD COLUMN type TEXT DEFAULT 'internal';");
       console.log('Database: Added missing column type to trainings table.');
     } catch (e) {

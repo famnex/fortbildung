@@ -55,7 +55,9 @@ const AdminSettingsPage = ({ user, onLogout }) => {
     jwt_sso_url: "",
     // School
     school_name: "MSO - Fortbildungssystem",
-    school_logo_base64: ""
+    school_logo_base64: "",
+    logout_text: "Abmelden",
+    logout_url: ""
   });
 
 
@@ -593,15 +595,42 @@ const AdminSettingsPage = ({ user, onLogout }) => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="school_name">Schulname *</Label>
+                    <Input
+                      id="school_name"
+                      placeholder="MSO - Fortbildungssystem"
+                      value={settings.school_name}
+                      onChange={(e) => handleChange("school_name", e.target.value)}
+                      data-testid="school-name-input"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="logout_text">Abmelde-Button Text</Label>
+                    <Input
+                      id="logout_text"
+                      placeholder="Abmelden"
+                      value={settings.logout_text || ""}
+                      onChange={(e) => handleChange("logout_text", e.target.value)}
+                      data-testid="logout-text-input"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="school_name">Schulname *</Label>
+                  <Label htmlFor="logout_url">Abmelde-Weiterleitungs-URL</Label>
                   <Input
-                    id="school_name"
-                    placeholder="MSO - Fortbildungssystem"
-                    value={settings.school_name}
-                    onChange={(e) => handleChange("school_name", e.target.value)}
-                    data-testid="school-name-input"
+                    id="logout_url"
+                    placeholder="z.B. https://portal.schule.de (Optional)"
+                    value={settings.logout_url || ""}
+                    onChange={(e) => handleChange("logout_url", e.target.value)}
+                    data-testid="logout-url-input"
                   />
+                  <p className="text-xs text-slate-500">
+                    Geben Sie eine externe URL an, zu welcher der Benutzer nach dem Abmelden weitergeleitet werden soll (z.B. Ihr Schulportal). Falls leer, wird er zur lokalen Login-Seite weitergeleitet.
+                  </p>
                 </div>
 
                 <div className="space-y-2">

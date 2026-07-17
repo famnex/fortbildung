@@ -1,12 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { GraduationCap, LogOut, Home, BookOpen, Calendar, Users, Settings, UserCog, FileText, Menu, X } from "lucide-react";
+import axios from "axios";
+import { API } from "@/App";
 
 const ResponsiveLayout = ({ user, onLogout, children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await axios.get(`${API}/settings`);
+        setSettings(response.data);
+      } catch (error) {
+        console.error("Error fetching settings in Layout:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  const handleLogout = () => {
+    onLogout();
+    if (settings && settings.logout_url && settings.logout_url.trim() !== "") {
+      window.location.href = settings.logout_url;
+    }
+  };
 
   const isActive = (path) => location.pathname === path;
 
@@ -125,13 +147,13 @@ const ResponsiveLayout = ({ user, onLogout, children }) => {
             </p>
           </div>
           <Button
-            onClick={onLogout}
+            onClick={handleLogout}
             variant="outline"
             className="w-full justify-start border-slate-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200"
             data-testid="logout-button"
           >
             <LogOut className="w-4 h-4 mr-2" />
-            Abmelden
+            {settings?.logout_text || "Abmelden"}
           </Button>
         </div>
       </aside>
