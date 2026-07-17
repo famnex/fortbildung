@@ -12,10 +12,18 @@ router.get(['/', '/my'], authenticateToken, async (req, res) => {
     });
 
     const result = [];
+    const { Participation } = require('../models');
     for (const r of registrations) {
       const training = await Training.findOne({ where: { training_id: r.training_id } });
+      const participation = await Participation.findOne({
+        where: {
+          training_id: r.training_id,
+          user_id: req.user.user_id
+        }
+      });
       const rJSON = r.toJSON();
       rJSON.training = training ? training.toJSON() : null;
+      rJSON.participation = participation ? participation.toJSON() : null;
       result.push(rJSON);
     }
 

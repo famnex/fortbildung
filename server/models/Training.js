@@ -60,6 +60,16 @@ const Training = sequelize.define('Training', {
     allowNull: true,
     defaultValue: ''
   },
+  external_provider: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: ''
+  },
+  costs: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: ''
+  },
   created_by: {
     type: DataTypes.STRING,
     allowNull: false

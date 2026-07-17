@@ -81,7 +81,7 @@ const MyRegistrationsPage = ({ user, onLogout }) => {
 
     setCanceling(true);
     try {
-      await axios.delete(`${API}/registrations/${cancelDialog.registration.registration.registration_id}`);
+      await axios.delete(`${API}/registrations/${cancelDialog.registration.registration_id}`);
       toast.success("Anmeldung erfolgreich storniert");
       setCancelDialog({ open: false, registration: null });
       fetchRegistrations();
@@ -182,7 +182,8 @@ const MyRegistrationsPage = ({ user, onLogout }) => {
           <div className="space-y-6">
             <div className="space-y-4">
               {paginatedList.map((item) => {
-                const { registration, training, participation } = item;
+                const registration = item;
+                const { training, participation } = item;
 
                 return (
                   <Card key={registration.registration_id} className="border-0 shadow-md hover:shadow-lg transition-all" data-testid="registration-card">

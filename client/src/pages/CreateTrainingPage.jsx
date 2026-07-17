@@ -25,7 +25,9 @@ const CreateTrainingPage = ({ user, onLogout }) => {
     registration_deadline: "",
     status: "draft",
     type: "internal",
-    external_link: ""
+    external_link: "",
+    external_provider: "",
+    costs: ""
   });
   const [dates, setDates] = useState([{ start_datetime: "", end_datetime: "" }]);
   const [formFields, setFormFields] = useState([]);
@@ -50,7 +52,9 @@ const CreateTrainingPage = ({ user, onLogout }) => {
             registration_deadline: template.registration_deadline ? template.registration_deadline.split('T')[0] : "",
             status: "draft",
             type: template.type || "internal",
-            external_link: template.external_link || ""
+            external_link: template.external_link || "",
+            external_provider: template.external_provider || "",
+            costs: template.costs || ""
           });
           if (template.dates && template.dates.length > 0) {
             const formattedDates = template.dates.map(d => ({
@@ -220,7 +224,7 @@ const CreateTrainingPage = ({ user, onLogout }) => {
             <CardDescription>Geben Sie die Details Ihrer Fortbildung an</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="type">Veranstaltungstyp</Label>
                 <select
@@ -237,16 +241,40 @@ const CreateTrainingPage = ({ user, onLogout }) => {
               </div>
 
               {formData.type === "external" && (
-                <div className="space-y-2">
-                  <Label htmlFor="external_link">Externer Anmeldelink</Label>
-                  <Input
-                    id="external_link"
-                    name="external_link"
-                    placeholder="https://anmeldung.externe-seite.de/..."
-                    value={formData.external_link || ""}
-                    onChange={handleChange}
-                    data-testid="external-link-input"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="external_link">Externer Anmeldelink</Label>
+                    <Input
+                      id="external_link"
+                      name="external_link"
+                      placeholder="https://anmeldung.externe-seite.de/..."
+                      value={formData.external_link || ""}
+                      onChange={handleChange}
+                      data-testid="external-link-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="external_provider">Anbieter</Label>
+                    <Input
+                      id="external_provider"
+                      name="external_provider"
+                      placeholder="z.B. Medientage Hessen"
+                      value={formData.external_provider || ""}
+                      onChange={handleChange}
+                      data-testid="external-provider-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="costs">Kosten</Label>
+                    <Input
+                      id="costs"
+                      name="costs"
+                      placeholder="z.B. Kostenlos oder 49 €"
+                      value={formData.costs || ""}
+                      onChange={handleChange}
+                      data-testid="costs-input"
+                    />
+                  </div>
                 </div>
               )}
             </div>

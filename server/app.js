@@ -120,6 +120,20 @@ async function startServer() {
     } catch (e) {
       // Column already exists, safe to ignore
     }
+
+    try {
+      await sequelize.query("ALTER TABLE trainings ADD COLUMN external_provider TEXT DEFAULT '';");
+      console.log('Database: Added missing column external_provider to trainings table.');
+    } catch (e) {
+      // Column already exists, safe to ignore
+    }
+
+    try {
+      await sequelize.query("ALTER TABLE trainings ADD COLUMN costs TEXT DEFAULT '';");
+      console.log('Database: Added missing column costs to trainings table.');
+    } catch (e) {
+      // Column already exists, safe to ignore
+    }
     
     // Sync models
     await sequelize.sync();

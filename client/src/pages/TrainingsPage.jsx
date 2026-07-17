@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { MapPin, Calendar, Users, Search, Clock, AlertCircle } from "lucide-react";
+import { MapPin, Calendar, Users, Search, Clock, AlertCircle, Euro } from "lucide-react";
 import DynamicForm from "@/components/DynamicForm";
 
 const TrainingsPage = ({ user, onLogout }) => {
@@ -272,8 +272,17 @@ const TrainingsPage = ({ user, onLogout }) => {
                         </div>
                       )}
 
+                      {isExternal && training.costs && (
+                        <div className="flex items-center text-sm text-slate-600">
+                          <Euro className="w-4 h-4 mr-2 text-slate-400" />
+                          Kosten: {training.costs}
+                        </div>
+                      )}
+
                       <div className="pt-2 border-t border-slate-100">
-                        <p className="text-xs text-slate-500">Anbieter: {training.created_by_name}</p>
+                        <p className="text-xs text-slate-500">
+                          Anbieter: {isExternal && training.external_provider ? training.external_provider : training.created_by_name}
+                        </p>
                       </div>
 
                       {isExternal ? (
