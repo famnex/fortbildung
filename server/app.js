@@ -99,6 +99,22 @@ async function startServer() {
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
     
+    // Reset update status on start if it was running
+    try {
+      const fs = require('fs');
+      const statusFile = path.join(__dirname, 'update_status.json');
+      if (fs.existsSync(statusFile)) {
+        const state = JSON.parse(fs.readFileSync(statusFile, 'utf8'));
+        if (state.status === 'running') {
+          state.status = 'success';
+          state.logs += '\n==============================================\nServer erfolgreich neu gestartet! Update abgeschlossen.\n==============================================\n';
+          fs.writeFileSync(statusFile, JSON.stringify(state, null, 2));
+        }
+      }
+    } catch (e) {
+      console.error('Error resetting update status:', e);
+    }
+    
     // Natively add missing columns to settings table for SQLite compatibility
     try {
       await sequelize.query("ALTER TABLE settings ADD COLUMN jwt_sso_url TEXT;");

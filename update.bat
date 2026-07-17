@@ -10,13 +10,13 @@ git pull
 echo.
 echo [2/5] Installiere Server-Abhaengigkeiten...
 cd server
-call npm install
+call npm install --production=false
 cd ..
 
 echo.
 echo [3/5] Installiere Client-Abhaengigkeiten...
 cd client
-call npm install --legacy-peer-deps
+call npm install --production=false --legacy-peer-deps
 cd ..
 
 echo.
