@@ -13,7 +13,8 @@ const Training = sequelize.define('Training', {
   },
   description: {
     type: DataTypes.TEXT,
-    allowNull: false
+    allowNull: true,
+    defaultValue: ''
   },
   requirements: {
     type: DataTypes.TEXT,
@@ -25,7 +26,8 @@ const Training = sequelize.define('Training', {
   },
   location: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true,
+    defaultValue: ''
   },
   dates: {
     type: DataTypes.TEXT,
@@ -40,11 +42,23 @@ const Training = sequelize.define('Training', {
   },
   max_participants: {
     type: DataTypes.INTEGER,
-    allowNull: false
+    allowNull: true,
+    defaultValue: null
   },
   registration_deadline: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true,
+    defaultValue: ''
+  },
+  type: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'internal' // 'internal' or 'external'
+  },
+  external_link: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: ''
   },
   created_by: {
     type: DataTypes.STRING,

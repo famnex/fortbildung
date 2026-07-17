@@ -40,6 +40,10 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(404).json({ detail: 'Fortbildung nicht gefunden' });
     }
 
+    if (training.type === 'external') {
+      return res.status(400).json({ detail: 'Anmeldungen für externe Veranstaltungen sind nicht möglich' });
+    }
+
     // Check if user is already registered
     const existing = await Registration.findOne({
       where: {

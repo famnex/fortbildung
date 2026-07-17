@@ -206,16 +206,24 @@ const TrainingsPage = ({ user, onLogout }) => {
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {paginatedList.map((training) => {
-                const deadlinePassed = isDeadlinePassed(training.registration_deadline);
-                const full = isFull(training);
-                const canRegister = !deadlinePassed && !full;
+                const isExternal = training.type === "external";
+                const deadlinePassed = training.registration_deadline ? isDeadlinePassed(training.registration_deadline) : false;
+                const full = !isExternal && isFull(training);
+                const canRegister = !isExternal && !deadlinePassed && !full;
 
                 return (
                   <Card key={training.training_id} className="border-0 shadow-md hover:shadow-xl transition-all duration-300" data-testid="training-card">
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <CardTitle className="text-xl text-slate-800">{training.title}</CardTitle>
+                          <div className="flex items-center space-x-2">
+                            <CardTitle className="text-xl text-slate-800">{training.title}</CardTitle>
+                            {isExternal && (
+                              <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">
+                                Externe Veranstaltung
+                              </Badge>
+                            )}
+                          </div>
                           <CardDescription className="mt-2">{training.description}</CardDescription>
                         </div>
                         {full && (
@@ -227,10 +235,12 @@ const TrainingsPage = ({ user, onLogout }) => {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="flex items-center text-sm text-slate-600">
-                        <MapPin className="w-4 h-4 mr-2 text-slate-400" />
-                        {training.location}
-                      </div>
+                      {training.location && (
+                        <div className="flex items-center text-sm text-slate-600">
+                          <MapPin className="w-4 h-4 mr-2 text-slate-400" />
+                          {training.location}
+                        </div>
+                      )}
 
                       {training.dates && training.dates.length > 0 && (
                         <div className="space-y-2">
@@ -248,31 +258,54 @@ const TrainingsPage = ({ user, onLogout }) => {
                         </div>
                       )}
 
-                      <div className="flex items-center text-sm text-slate-600">
-                        <Users className="w-4 h-4 mr-2 text-slate-400" />
-                        {training.current_participants} / {training.max_participants} Teilnehmer
-                      </div>
+                      {!isExternal && (
+                        <div className="flex items-center text-sm text-slate-600">
+                          <Users className="w-4 h-4 mr-2 text-slate-400" />
+                          {training.current_participants} / {training.max_participants} Teilnehmer
+                        </div>
+                      )}
 
-                      <div className="flex items-center text-sm text-slate-600">
-                        <Clock className="w-4 h-4 mr-2 text-slate-400" />
-                        Anmeldefrist: {formatDate(training.registration_deadline)}
-                      </div>
+                      {training.registration_deadline && (
+                        <div className="flex items-center text-sm text-slate-600">
+                          <Clock className="w-4 h-4 mr-2 text-slate-400" />
+                          Anmeldefrist: {formatDate(training.registration_deadline)}
+                        </div>
+                      )}
 
                       <div className="pt-2 border-t border-slate-100">
                         <p className="text-xs text-slate-500">Anbieter: {training.created_by_name}</p>
                       </div>
 
-                      <Button
-                        onClick={() => {
-                          setSelectedTraining(training);
-                          setShowRegisterDialog(true);
-                        }}
-                        disabled={!canRegister}
-                        className="w-full bg-blue-600 hover:bg-blue-700"
-                        data-testid="register-button"
-                      >
-                        {full ? "Ausgebucht" : deadlinePassed ? "Frist abgelaufen" : "Jetzt anmelden"}
-                      </Button>
+                      {isExternal ? (
+                        training.external_link ? (
+                          <a
+                            href={training.external_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-full"
+                          >
+                            <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                              Zur Anmeldung (Externer Link)
+                            </Button>
+                          </a>
+                        ) : (
+                          <Button disabled className="w-full">
+                            Kein Link angegeben
+                          </Button>
+                        )
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            setSelectedTraining(training);
+                            setShowRegisterDialog(true);
+                          }}
+                          disabled={!canRegister}
+                          className="w-full bg-blue-600 hover:bg-blue-700"
+                          data-testid="register-button"
+                        >
+                          {full ? "Ausgebucht" : deadlinePassed ? "Frist abgelaufen" : "Jetzt anmelden"}
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 );

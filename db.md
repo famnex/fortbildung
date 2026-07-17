@@ -70,8 +70,10 @@ Fortbildungsangebote.
 | `materials` | Text | Benötigte Materialien |
 | `location` | String | Veranstaltungsort |
 | `dates` | Text (JSON-String) | Liste von Terminen (start_datetime, end_datetime) |
-| `max_participants` | Integer | Maximale Teilnehmeranzahl |
-| `registration_deadline`| String (ISO Date)| Anmeldefrist |
+| `max_participants` | Integer (Nullable) | Maximale Teilnehmeranzahl (optional für externe) |
+| `registration_deadline`| String (ISO Date / Nullable)| Anmeldefrist (optional für externe) |
+| `type` | String | Art der Fortbildung (`internal` oder `external`) |
+| `external_link` | String (Nullable) | Anmelde-Link (nur für `type: "external"`) |
 | `created_by` | String | ID des Erstellers |
 | `created_by_name` | String | Name des Erstellers |
 | `status` | String | Status (`draft` oder `published`) |
@@ -132,6 +134,8 @@ Verlauf von Änderungen an Fortbildungen.
 
 ### Update 2026-07-17
 * **JWT SSO Redirect URL**: Spalte `jwt_sso_url` (Typ: `TEXT`) zur Tabelle `settings` hinzugefügt. Wird beim Serverstart automatisch über eine rohe SQL-Query angelegt, falls noch nicht vorhanden (`ALTER TABLE settings ADD COLUMN jwt_sso_url TEXT;`).
+* **Veranstaltungstypen (Interne/Externe)**: Spalten `type` (Typ: `TEXT DEFAULT 'internal'`) und `external_link` (Typ: `TEXT DEFAULT ''`) zur Tabelle `trainings` hinzugefügt. Wird beim Serverstart automatisch angelegt. Spalten `description`, `location`, `max_participants` und `registration_deadline` wurden auf optional gesetzt.
+
 
 ### Update 2026-07-15
 * **Migration auf SQLite & Sequelize (Node.js)**: Die Datenbank wurde vollständig von MongoDB auf eine relationale SQLite-Struktur umgestellt.

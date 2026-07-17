@@ -204,6 +204,11 @@ const MyTrainingsPage = ({ user, onLogout }) => {
                           ) : (
                             <Badge variant="default" className="bg-green-100 text-green-800">Veröffentlicht</Badge>
                           )}
+                          {training.type === "external" && (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">
+                              Externe Veranstaltung
+                            </Badge>
+                          )}
                         </div>
                         <CardDescription className="mt-2">{training.description}</CardDescription>
                       </div>
@@ -212,10 +217,12 @@ const MyTrainingsPage = ({ user, onLogout }) => {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <div className="flex items-center text-sm text-slate-600 mb-2">
-                          <MapPin className="w-4 h-4 mr-2 text-slate-400" />
-                          {training.location}
-                        </div>
+                        {training.location && (
+                          <div className="flex items-center text-sm text-slate-600 mb-2">
+                            <MapPin className="w-4 h-4 mr-2 text-slate-400" />
+                            {training.location}
+                          </div>
+                        )}
                         {training.dates && training.dates.length > 0 && (
                           <div className="space-y-1">
                             <div className="flex items-center text-sm font-medium text-slate-700">
@@ -234,13 +241,17 @@ const MyTrainingsPage = ({ user, onLogout }) => {
                       </div>
 
                       <div className="space-y-2">
-                        <div className="flex items-center text-sm text-slate-600">
-                          <Users className="w-4 h-4 mr-2 text-slate-400" />
-                          {training.current_participants} / {training.max_participants} Teilnehmer
-                        </div>
-                        <div className="text-sm text-slate-600">
-                          Anmeldefrist: {formatDate(training.registration_deadline)}
-                        </div>
+                        {training.type !== "external" && (
+                          <div className="flex items-center text-sm text-slate-600">
+                            <Users className="w-4 h-4 mr-2 text-slate-400" />
+                            {training.current_participants} / {training.max_participants} Teilnehmer
+                          </div>
+                        )}
+                        {training.registration_deadline && (
+                          <div className="text-sm text-slate-600">
+                            Anmeldefrist: {formatDate(training.registration_deadline)}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -264,15 +275,17 @@ const MyTrainingsPage = ({ user, onLogout }) => {
                           </>
                         )}
                       </Button>
-                      <Button
-                        onClick={() => navigate(`/participants/${training.training_id}`)}
-                        variant="outline"
-                        className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                        data-testid="participants-button"
-                      >
-                        <Users className="w-4 h-4 mr-2" />
-                        Teilnehmer ({training.current_participants})
-                      </Button>
+                      {training.type !== "external" && (
+                        <Button
+                          onClick={() => navigate(`/participants/${training.training_id}`)}
+                          variant="outline"
+                          className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                          data-testid="participants-button"
+                        >
+                          <Users className="w-4 h-4 mr-2" />
+                          Teilnehmer ({training.current_participants})
+                        </Button>
+                      )}
                       <Button
                         onClick={() => navigate(`/edit-training/${training.training_id}`)}
                         variant="outline"

@@ -23,7 +23,9 @@ const CreateTrainingPage = ({ user, onLogout }) => {
     location: "",
     max_participants: 20,
     registration_deadline: "",
-    status: "draft"
+    status: "draft",
+    type: "internal",
+    external_link: ""
   });
   const [dates, setDates] = useState([{ start_datetime: "", end_datetime: "" }]);
   const [formFields, setFormFields] = useState([]);
@@ -38,7 +40,7 @@ const CreateTrainingPage = ({ user, onLogout }) => {
         try {
           const response = await axios.get(`${API}/trainings/${copyFrom}`);
           const template = response.data;
-          setFormData({
+           setFormData({
             title: `${template.title} (Kopie)`,
             description: template.description || "",
             requirements: template.requirements || "",
@@ -46,7 +48,9 @@ const CreateTrainingPage = ({ user, onLogout }) => {
             location: template.location || "",
             max_participants: template.max_participants || 20,
             registration_deadline: template.registration_deadline ? template.registration_deadline.split('T')[0] : "",
-            status: "draft"
+            status: "draft",
+            type: template.type || "internal",
+            external_link: template.external_link || ""
           });
           if (template.dates && template.dates.length > 0) {
             const formattedDates = template.dates.map(d => ({
@@ -97,18 +101,30 @@ const CreateTrainingPage = ({ user, onLogout }) => {
   };
 
   const handleSubmit = async (status) => {
-    if (!formData.title || !formData.description || !formData.location || !formData.registration_deadline) {
-      toast.error("Bitte füllen Sie alle Pflichtfelder aus");
-      return;
+    const isExternal = formData.type === "external";
+    
+    if (isExternal) {
+      if (!formData.title) {
+        toast.error("Bitte geben Sie einen Titel ein");
+        return;
+      }
+    } else {
+      if (!formData.title || !formData.description || !formData.location || !formData.registration_deadline) {
+        toast.error("Bitte füllen Sie alle Pflichtfelder aus");
+        return;
+      }
+      if (dates.some(d => !d.start_datetime || !d.end_datetime)) {
+        toast.error("Bitte geben Sie Start- und Enddatum für alle Termine an");
+        return;
+      }
     }
 
-    if (dates.some(d => !d.start_datetime || !d.end_datetime)) {
-      toast.error("Bitte geben Sie Start- und Enddatum für alle Termine an");
-      return;
-    }
+    const activeDates = isExternal 
+      ? dates.filter(d => d.start_datetime && d.end_datetime)
+      : dates;
 
     // Validate form fields
-    if (formFields.length > 0) {
+    if (!isExternal && formFields.length > 0) {
       const invalidFields = formFields.filter(f => !f.label || f.label.trim() === "");
       if (invalidFields.length > 0) {
         toast.error("Bitte geben Sie für alle Formularfelder eine Feldbezeichnung ein");
@@ -117,22 +133,33 @@ const CreateTrainingPage = ({ user, onLogout }) => {
     }
 
     // Validate dates plausibility
-    const registrationDeadline = new Date(formData.registration_deadline + "T23:59:59");
-    
-    for (let i = 0; i < dates.length; i++) {
-      const startDate = new Date(dates[i].start_datetime);
-      const endDate = new Date(dates[i].end_datetime);
+    if (formData.registration_deadline && activeDates.length > 0) {
+      const registrationDeadline = new Date(formData.registration_deadline + "T23:59:59");
       
-      // Check if end is after start
-      if (endDate <= startDate) {
-        toast.error(`Termin ${i + 1}: Das Enddatum muss nach dem Startdatum liegen`);
-        return;
+      for (let i = 0; i < activeDates.length; i++) {
+        const startDate = new Date(activeDates[i].start_datetime);
+        const endDate = new Date(activeDates[i].end_datetime);
+        
+        // Check if end is after start
+        if (endDate <= startDate) {
+          toast.error(`Termin ${i + 1}: Das Enddatum muss nach dem Startdatum liegen`);
+          return;
+        }
+        
+        // Check if registration deadline is before or equal to start
+        if (registrationDeadline > startDate) {
+          toast.error(`Termin ${i + 1}: Die Anmeldefrist muss vor oder gleich dem Startdatum liegen`);
+          return;
+        }
       }
-      
-      // Check if registration deadline is before or equal to start
-      if (registrationDeadline > startDate) {
-        toast.error(`Termin ${i + 1}: Die Anmeldefrist muss vor oder gleich dem Startdatum liegen`);
-        return;
+    } else if (activeDates.length > 0) {
+      for (let i = 0; i < activeDates.length; i++) {
+        const startDate = new Date(activeDates[i].start_datetime);
+        const endDate = new Date(activeDates[i].end_datetime);
+        if (endDate <= startDate) {
+          toast.error(`Termin ${i + 1}: Das Enddatum muss nach dem Startdatum liegen`);
+          return;
+        }
       }
     }
 
@@ -140,11 +167,11 @@ const CreateTrainingPage = ({ user, onLogout }) => {
     try {
       await axios.post(`${API}/trainings`, {
         ...formData,
-        dates: dates.map(d => ({
+        dates: activeDates.map(d => ({
           start_datetime: d.start_datetime,
           end_datetime: d.end_datetime
         })),
-        form_fields: formFields,
+        form_fields: isExternal ? [] : formFields,
         status
       });
       toast.success(`Fortbildung erfolgreich ${status === "draft" ? "als Entwurf gespeichert" : "veröffentlicht"}`);
@@ -171,6 +198,37 @@ const CreateTrainingPage = ({ user, onLogout }) => {
             <CardDescription>Geben Sie die Details Ihrer Fortbildung an</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="type">Veranstaltungstyp</Label>
+                <select
+                  id="type"
+                  name="type"
+                  value={formData.type}
+                  onChange={handleChange}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  data-testid="type-select"
+                >
+                  <option value="internal">Interne Fortbildung (mit Anmeldung & Urkunde)</option>
+                  <option value="external">Hinweis auf externe Veranstaltung (mit Link)</option>
+                </select>
+              </div>
+
+              {formData.type === "external" && (
+                <div className="space-y-2">
+                  <Label htmlFor="external_link">Externer Anmeldelink</Label>
+                  <Input
+                    id="external_link"
+                    name="external_link"
+                    placeholder="https://anmeldung.externe-seite.de/..."
+                    value={formData.external_link || ""}
+                    onChange={handleChange}
+                    data-testid="external-link-input"
+                  />
+                </div>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="title">Titel *</Label>
               <Input
@@ -184,7 +242,7 @@ const CreateTrainingPage = ({ user, onLogout }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Beschreibung *</Label>
+              <Label htmlFor="description">Beschreibung {formData.type === "internal" ? "*" : ""}</Label>
               <Textarea
                 id="description"
                 name="description"
@@ -225,7 +283,7 @@ const CreateTrainingPage = ({ user, onLogout }) => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location">Ort *</Label>
+              <Label htmlFor="location">Ort {formData.type === "internal" ? "*" : ""}</Label>
               <Input
                 id="location"
                 name="location"
@@ -238,7 +296,7 @@ const CreateTrainingPage = ({ user, onLogout }) => {
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label>Termine *</Label>
+                <Label>Termine {formData.type === "internal" ? "*" : ""}</Label>
                 <Button
                   type="button"
                   size="sm"
@@ -294,21 +352,23 @@ const CreateTrainingPage = ({ user, onLogout }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="max_participants">Maximale Teilnehmerzahl *</Label>
-                <Input
-                  id="max_participants"
-                  name="max_participants"
-                  type="number"
-                  min="1"
-                  value={formData.max_participants}
-                  onChange={handleChange}
-                  data-testid="max-participants-input"
-                />
-              </div>
+              {formData.type === "internal" && (
+                <div className="space-y-2">
+                  <Label htmlFor="max_participants">Maximale Teilnehmerzahl *</Label>
+                  <Input
+                    id="max_participants"
+                    name="max_participants"
+                    type="number"
+                    min="1"
+                    value={formData.max_participants}
+                    onChange={handleChange}
+                    data-testid="max-participants-input"
+                  />
+                </div>
+              )}
 
               <div className="space-y-2">
-                <Label htmlFor="registration_deadline">Anmeldefrist *</Label>
+                <Label htmlFor="registration_deadline">Anmeldefrist {formData.type === "internal" ? "*" : ""}</Label>
                 <Input
                   id="registration_deadline"
                   name="registration_deadline"
@@ -320,9 +380,11 @@ const CreateTrainingPage = ({ user, onLogout }) => {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-slate-200">
-              <FormBuilder fields={formFields} onChange={setFormFields} />
-            </div>
+            {formData.type === "internal" && (
+              <div className="pt-4 border-t border-slate-200">
+                <FormBuilder fields={formFields} onChange={setFormFields} />
+              </div>
+            )}
 
             <div className="flex space-x-3 pt-4 border-t border-slate-200">
               <Button

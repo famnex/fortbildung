@@ -106,6 +106,20 @@ async function startServer() {
     } catch (e) {
       // Column already exists, safe to ignore
     }
+
+    try {
+      await sequelize.query("ALTER TABLE trainings ADD COLUMN type TEXT DEFAULT 'internal';");
+      console.log('Database: Added missing column type to trainings table.');
+    } catch (e) {
+      // Column already exists, safe to ignore
+    }
+
+    try {
+      await sequelize.query("ALTER TABLE trainings ADD COLUMN external_link TEXT DEFAULT '';");
+      console.log('Database: Added missing column external_link to trainings table.');
+    } catch (e) {
+      // Column already exists, safe to ignore
+    }
     
     // Sync models
     await sequelize.sync();
