@@ -14,10 +14,55 @@ const MyRegistrationsPage = ({ user, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [cancelDialog, setCancelDialog] = useState({ open: false, registration: null });
   const [canceling, setCanceling] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const getEarliestStartDate = (training) => {
+    if (!training || !training.dates || training.dates.length === 0) return null;
+    const dates = training.dates.map(d => new Date(d.start_datetime));
+    return new Date(Math.min(...dates));
+  };
+
+  const getLatestEndDate = (training) => {
+    if (!training || !training.dates || training.dates.length === 0) return null;
+    const dates = training.dates.map(d => new Date(d.end_datetime));
+    return new Date(Math.max(...dates));
+  };
 
   useEffect(() => {
     fetchRegistrations();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [showArchive]);
+
+  const now = new Date();
+
+  const activeRegistrations = registrations.filter(item => {
+    const lastEnd = getLatestEndDate(item.training);
+    return !lastEnd || lastEnd >= now;
+  });
+
+  const archivedRegistrations = registrations.filter(item => {
+    const lastEnd = getLatestEndDate(item.training);
+    return lastEnd && lastEnd < now;
+  });
+
+  const currentList = showArchive ? archivedRegistrations : activeRegistrations;
+
+  const sortedList = [...currentList].sort((a, b) => {
+    const startA = getEarliestStartDate(a.training);
+    const startB = getEarliestStartDate(b.training);
+    if (!startA && !startB) return 0;
+    if (!startA) return 1;
+    if (!startB) return -1;
+    return startA - startB;
+  });
+
+  const itemsPerPage = 20;
+  const totalPages = Math.ceil(sortedList.length / itemsPerPage);
+  const paginatedList = sortedList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const fetchRegistrations = async () => {
     try {
@@ -100,12 +145,32 @@ const MyRegistrationsPage = ({ user, onLogout }) => {
   return (
     <Layout user={user} onLogout={onLogout}>
       <div className="space-y-6" data-testid="my-registrations-page">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Meine Anmeldungen</h1>
-          <p className="text-slate-600 mt-2">{registrations.length} aktive Anmeldungen</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">Meine Anmeldungen</h1>
+            <p className="text-slate-600 mt-2">
+              {showArchive ? "Archivierte Anmeldungen" : "Aktive Anmeldungen"} ({currentList.length})
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={showArchive ? "default" : "outline"}
+              onClick={() => setShowArchive(false)}
+              className="h-10 px-4"
+            >
+              Aktuell
+            </Button>
+            <Button
+              variant={showArchive ? "outline" : "default"}
+              onClick={() => setShowArchive(true)}
+              className={`h-10 px-4 ${showArchive ? "" : "bg-slate-800 text-white hover:bg-slate-700"}`}
+            >
+              Archiv
+            </Button>
+          </div>
         </div>
 
-        {registrations.length === 0 ? (
+        {paginatedList.length === 0 ? (
           <Card className="border-0 shadow-md">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <AlertCircle className="w-12 h-12 text-slate-400 mb-4" />
@@ -114,96 +179,122 @@ const MyRegistrationsPage = ({ user, onLogout }) => {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
-            {registrations.map((item) => {
-              const { registration, training, participation } = item;
+          <div className="space-y-6">
+            <div className="space-y-4">
+              {paginatedList.map((item) => {
+                const { registration, training, participation } = item;
 
-              return (
-                <Card key={registration.registration_id} className="border-0 shadow-md hover:shadow-lg transition-all" data-testid="registration-card">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <CardTitle className="text-xl text-slate-800">{training.title}</CardTitle>
-                          {registration.status === "waitlist" && (
-                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Warteliste</Badge>
-                          )}
-                          {registration.status === "registered" && (
-                            <Badge variant="default" className="bg-green-100 text-green-800">Angemeldet</Badge>
-                          )}
-                        </div>
-                        <CardDescription className="mt-2">{training.description}</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <div className="flex items-center text-sm text-slate-600 mb-2">
-                          <MapPin className="w-4 h-4 mr-2 text-slate-400" />
-                          {training.location}
-                        </div>
-                        {training.dates && training.dates.length > 0 && (
-                          <div className="space-y-1">
-                            <div className="flex items-center text-sm font-medium text-slate-700">
-                              <Calendar className="w-4 h-4 mr-2 text-slate-400" />
-                              Termine:
-                            </div>
-                            <div className="pl-6 space-y-1">
-                              {training.dates.map((date, index) => (
-                                <div key={index} className="text-sm text-slate-600">
-                                  {formatDate(date.start_datetime)} | {formatTime(date.start_datetime)} - {formatTime(date.end_datetime)}
-                                </div>
-                              ))}
-                            </div>
+                return (
+                  <Card key={registration.registration_id} className="border-0 shadow-md hover:shadow-lg transition-all" data-testid="registration-card">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <CardTitle className="text-xl text-slate-800">{training.title}</CardTitle>
+                            {registration.status === "waitlist" && (
+                              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Warteliste</Badge>
+                            )}
+                            {registration.status === "registered" && (
+                              <Badge variant="default" className="bg-green-100 text-green-800">Angemeldet</Badge>
+                            )}
                           </div>
-                        )}
+                          <CardDescription className="mt-2">{training.description}</CardDescription>
+                        </div>
                       </div>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <div className="flex items-center text-sm text-slate-600 mb-2">
+                            <MapPin className="w-4 h-4 mr-2 text-slate-400" />
+                            {training.location}
+                          </div>
+                          {training.dates && training.dates.length > 0 && (
+                            <div className="space-y-1">
+                              <div className="flex items-center text-sm font-medium text-slate-700">
+                                <Calendar className="w-4 h-4 mr-2 text-slate-400" />
+                                Termine:
+                              </div>
+                              <div className="pl-6 space-y-1">
+                                {training.dates.map((date, index) => (
+                                  <div key={index} className="text-sm text-slate-600">
+                                    {formatDate(date.start_datetime)} | {formatTime(date.start_datetime)} - {formatTime(date.end_datetime)}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
 
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm text-slate-600">
-                          <Clock className="w-4 h-4 mr-2 text-slate-400" />
-                          Angemeldet am: {formatDate(registration.registered_at)}
-                        </div>
-                        {participation ? (
-                          <div className="flex items-center text-sm text-green-700">
-                            <CheckCircle2 className="w-4 h-4 mr-2" />
-                            Teilnahme bestätigt
-                          </div>
-                        ) : (
+                        <div className="space-y-2">
                           <div className="flex items-center text-sm text-slate-600">
                             <Clock className="w-4 h-4 mr-2 text-slate-400" />
-                            Teilnahme ausstehend
+                            Angemeldet am: {formatDate(registration.registered_at)}
                           </div>
-                        )}
+                          {participation ? (
+                            <div className="flex items-center text-sm text-green-700">
+                              <CheckCircle2 className="w-4 h-4 mr-2" />
+                              Teilnahme bestätigt
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-sm text-slate-600">
+                              <Clock className="w-4 h-4 mr-2 text-slate-400" />
+                              Teilnahme ausstehend
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex space-x-3 pt-2 border-t border-slate-100">
-                      {participation && participation.confirmed && (
+                      <div className="flex space-x-3 pt-2 border-t border-slate-100">
+                        {participation && participation.confirmed && (
+                          <Button
+                            onClick={() => downloadCertificate(participation.participation_id)}
+                            className="bg-green-600 hover:bg-green-700"
+                            data-testid="download-certificate-button"
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Urkunde herunterladen
+                          </Button>
+                        )}
                         <Button
-                          onClick={() => downloadCertificate(participation.participation_id)}
-                          className="bg-green-600 hover:bg-green-700"
-                          data-testid="download-certificate-button"
+                          variant="outline"
+                          onClick={() => setCancelDialog({ open: true, registration: item })}
+                          className="border-red-200 text-red-600 hover:bg-red-50"
+                          data-testid="cancel-registration-button"
                         >
-                          <Download className="w-4 h-4 mr-2" />
-                          Urkunde herunterladen
+                          <X className="w-4 h-4 mr-2" />
+                          Abmelden
                         </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        onClick={() => setCancelDialog({ open: true, registration: item })}
-                        className="border-red-200 text-red-600 hover:bg-red-50"
-                        data-testid="cancel-registration-button"
-                      >
-                        <X className="w-4 h-4 mr-2" />
-                        Abmelden
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center space-x-2 mt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Zurück
+                </Button>
+                <span className="text-sm text-slate-600">
+                  Seite {currentPage} von {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Weiter
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

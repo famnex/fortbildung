@@ -21,6 +21,8 @@ const TrainingsPage = ({ user, onLogout }) => {
   const [showRegisterDialog, setShowRegisterDialog] = useState(false);
   const [formResponses, setFormResponses] = useState({});
   const [registering, setRegistering] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchTrainings();
@@ -38,6 +40,49 @@ const TrainingsPage = ({ user, onLogout }) => {
     });
     setFilteredTrainings(filtered);
   }, [searchTerm, trainings]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, showArchive]);
+
+  const getEarliestStartDate = (t) => {
+    if (!t.dates || t.dates.length === 0) return null;
+    const dates = t.dates.map(d => new Date(d.start_datetime));
+    return new Date(Math.min(...dates));
+  };
+
+  const getLatestEndDate = (t) => {
+    if (!t.dates || t.dates.length === 0) return null;
+    const dates = t.dates.map(d => new Date(d.end_datetime));
+    return new Date(Math.max(...dates));
+  };
+
+  const now = new Date();
+
+  const activeTrainings = filteredTrainings.filter(t => {
+    const lastEnd = getLatestEndDate(t);
+    return !lastEnd || lastEnd >= now;
+  });
+
+  const archivedTrainings = filteredTrainings.filter(t => {
+    const lastEnd = getLatestEndDate(t);
+    return lastEnd && lastEnd < now;
+  });
+
+  const currentList = showArchive ? archivedTrainings : activeTrainings;
+
+  const sortedList = [...currentList].sort((a, b) => {
+    const startA = getEarliestStartDate(a);
+    const startB = getEarliestStartDate(b);
+    if (!startA && !startB) return 0;
+    if (!startA) return 1;
+    if (!startB) return -1;
+    return startA - startB;
+  });
+
+  const itemsPerPage = 20;
+  const totalPages = Math.ceil(sortedList.length / itemsPerPage);
+  const paginatedList = sortedList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const fetchTrainings = async () => {
     try {
@@ -114,9 +159,29 @@ const TrainingsPage = ({ user, onLogout }) => {
   return (
     <Layout user={user} onLogout={onLogout}>
       <div className="space-y-6" data-testid="trainings-page">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Fortbildungskatalog</h1>
-          <p className="text-slate-600 mt-2">{filteredTrainings.length} verfügbare Fortbildungen</p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">Fortbildungskatalog</h1>
+            <p className="text-slate-600 mt-2">
+              {showArchive ? "Archivierte Fortbildungen" : "Aktuelle Fortbildungen"} ({currentList.length})
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant={showArchive ? "default" : "outline"}
+              onClick={() => setShowArchive(false)}
+              className="h-10 px-4"
+            >
+              Aktuell
+            </Button>
+            <Button
+              variant={showArchive ? "outline" : "default"}
+              onClick={() => setShowArchive(true)}
+              className={`h-10 px-4 ${showArchive ? "" : "bg-slate-800 text-white hover:bg-slate-700"}`}
+            >
+              Archiv
+            </Button>
+          </div>
         </div>
 
         <div className="relative">
@@ -130,7 +195,7 @@ const TrainingsPage = ({ user, onLogout }) => {
           />
         </div>
 
-        {filteredTrainings.length === 0 ? (
+        {paginatedList.length === 0 ? (
           <Card className="border-0 shadow-md">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <AlertCircle className="w-12 h-12 text-slate-400 mb-4" />
@@ -138,79 +203,105 @@ const TrainingsPage = ({ user, onLogout }) => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {filteredTrainings.map((training) => {
-              const deadlinePassed = isDeadlinePassed(training.registration_deadline);
-              const full = isFull(training);
-              const canRegister = !deadlinePassed && !full;
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {paginatedList.map((training) => {
+                const deadlinePassed = isDeadlinePassed(training.registration_deadline);
+                const full = isFull(training);
+                const canRegister = !deadlinePassed && !full;
 
-              return (
-                <Card key={training.training_id} className="border-0 shadow-md hover:shadow-xl transition-all duration-300" data-testid="training-card">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-xl text-slate-800">{training.title}</CardTitle>
-                        <CardDescription className="mt-2">{training.description}</CardDescription>
-                      </div>
-                      {full && (
-                        <Badge variant="destructive" className="ml-2">Ausgebucht</Badge>
-                      )}
-                      {deadlinePassed && !full && (
-                        <Badge variant="secondary" className="ml-2">Frist abgelaufen</Badge>
-                      )}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center text-sm text-slate-600">
-                      <MapPin className="w-4 h-4 mr-2 text-slate-400" />
-                      {training.location}
-                    </div>
-
-                    {training.dates && training.dates.length > 0 && (
-                      <div className="space-y-2">
-                        <div className="flex items-center text-sm font-medium text-slate-700">
-                          <Calendar className="w-4 h-4 mr-2 text-slate-400" />
-                          Termine:
+                return (
+                  <Card key={training.training_id} className="border-0 shadow-md hover:shadow-xl transition-all duration-300" data-testid="training-card">
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <CardTitle className="text-xl text-slate-800">{training.title}</CardTitle>
+                          <CardDescription className="mt-2">{training.description}</CardDescription>
                         </div>
-                        <div className="pl-6 space-y-1">
-                          {training.dates.map((date, index) => (
-                            <div key={index} className="text-sm text-slate-600">
-                              {formatDate(date.start_datetime)} | {formatTime(date.start_datetime)} - {formatTime(date.end_datetime)}
-                            </div>
-                          ))}
-                        </div>
+                        {full && (
+                          <Badge variant="destructive" className="ml-2">Ausgebucht</Badge>
+                        )}
+                        {deadlinePassed && !full && (
+                          <Badge variant="secondary" className="ml-2">Frist abgelaufen</Badge>
+                        )}
                       </div>
-                    )}
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center text-sm text-slate-600">
+                        <MapPin className="w-4 h-4 mr-2 text-slate-400" />
+                        {training.location}
+                      </div>
 
-                    <div className="flex items-center text-sm text-slate-600">
-                      <Users className="w-4 h-4 mr-2 text-slate-400" />
-                      {training.current_participants} / {training.max_participants} Teilnehmer
-                    </div>
+                      {training.dates && training.dates.length > 0 && (
+                        <div className="space-y-2">
+                          <div className="flex items-center text-sm font-medium text-slate-700">
+                            <Calendar className="w-4 h-4 mr-2 text-slate-400" />
+                            Termine:
+                          </div>
+                          <div className="pl-6 space-y-1">
+                            {training.dates.map((date, index) => (
+                              <div key={index} className="text-sm text-slate-600">
+                                {formatDate(date.start_datetime)} | {formatTime(date.start_datetime)} - {formatTime(date.end_datetime)}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-                    <div className="flex items-center text-sm text-slate-600">
-                      <Clock className="w-4 h-4 mr-2 text-slate-400" />
-                      Anmeldefrist: {formatDate(training.registration_deadline)}
-                    </div>
+                      <div className="flex items-center text-sm text-slate-600">
+                        <Users className="w-4 h-4 mr-2 text-slate-400" />
+                        {training.current_participants} / {training.max_participants} Teilnehmer
+                      </div>
 
-                    <div className="pt-2 border-t border-slate-100">
-                      <p className="text-xs text-slate-500">Anbieter: {training.created_by_name}</p>
-                    </div>
+                      <div className="flex items-center text-sm text-slate-600">
+                        <Clock className="w-4 h-4 mr-2 text-slate-400" />
+                        Anmeldefrist: {formatDate(training.registration_deadline)}
+                      </div>
 
-                    <Button
-                      onClick={() => {
-                        setSelectedTraining(training);
-                        setShowRegisterDialog(true);
-                      }}
-                      disabled={!canRegister}
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                      data-testid="register-button"
-                    >
-                      {full ? "Ausgebucht" : deadlinePassed ? "Frist abgelaufen" : "Jetzt anmelden"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                      <div className="pt-2 border-t border-slate-100">
+                        <p className="text-xs text-slate-500">Anbieter: {training.created_by_name}</p>
+                      </div>
+
+                      <Button
+                        onClick={() => {
+                          setSelectedTraining(training);
+                          setShowRegisterDialog(true);
+                        }}
+                        disabled={!canRegister}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        data-testid="register-button"
+                      >
+                        {full ? "Ausgebucht" : deadlinePassed ? "Frist abgelaufen" : "Jetzt anmelden"}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center space-x-2 mt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Zurück
+                </Button>
+                <span className="text-sm text-slate-600">
+                  Seite {currentPage} von {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Weiter
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

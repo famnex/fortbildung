@@ -27,33 +27,18 @@ router.get('/', authenticateToken, async (req, res) => {
       where: { status: 'published' }
     });
 
-    const now = new Date();
-    const futureTrainings = [];
+    const result = [];
 
     for (const t of trainings) {
-      const dates = t.dates;
-      let isFuture = true;
-
-      if (dates && dates.length > 0) {
-        const lastDateObj = dates.reduce((max, d) => {
-          return new Date(d.end_datetime) > new Date(max.end_datetime) ? d : max;
-        }, dates[0]);
-
-        const lastEnd = new Date(lastDateObj.end_datetime);
-        isFuture = lastEnd > now;
-      }
-
-      if (isFuture) {
-        const count = await Registration.count({
-          where: { training_id: t.training_id, status: 'registered' }
-        });
-        const tJSON = t.toJSON();
-        tJSON.current_participants = count;
-        futureTrainings.push(tJSON);
-      }
+      const count = await Registration.count({
+        where: { training_id: t.training_id, status: 'registered' }
+      });
+      const tJSON = t.toJSON();
+      tJSON.current_participants = count;
+      result.push(tJSON);
     }
 
-    res.json(futureTrainings);
+    res.json(result);
   } catch (error) {
     console.error('Error fetching trainings:', error);
     res.status(500).json({ detail: 'Fehler beim Laden der Fortbildungen' });

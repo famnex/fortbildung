@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import axios from "axios";
 import { API } from "@/App";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Save, Eye, Plus, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import FormBuilder from "@/components/FormBuilder";
 
 const CreateTrainingPage = ({ user, onLogout }) => {
@@ -27,6 +27,48 @@ const CreateTrainingPage = ({ user, onLogout }) => {
   });
   const [dates, setDates] = useState([{ start_datetime: "", end_datetime: "" }]);
   const [formFields, setFormFields] = useState([]);
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const copyFrom = params.get("copyFrom");
+    if (copyFrom) {
+      const fetchTemplate = async () => {
+        setLoading(true);
+        try {
+          const response = await axios.get(`${API}/trainings/${copyFrom}`);
+          const template = response.data;
+          setFormData({
+            title: `${template.title} (Kopie)`,
+            description: template.description || "",
+            requirements: template.requirements || "",
+            materials: template.materials || "",
+            location: template.location || "",
+            max_participants: template.max_participants || 20,
+            registration_deadline: template.registration_deadline ? template.registration_deadline.split('T')[0] : "",
+            status: "draft"
+          });
+          if (template.dates && template.dates.length > 0) {
+            const formattedDates = template.dates.map(d => ({
+              start_datetime: d.start_datetime ? d.start_datetime.substring(0, 16) : "",
+              end_datetime: d.end_datetime ? d.end_datetime.substring(0, 16) : ""
+            }));
+            setDates(formattedDates);
+          }
+          if (template.form_fields) {
+            setFormFields(template.form_fields);
+          }
+          toast.success("Vorlage erfolgreich geladen!");
+        } catch (error) {
+          console.error("Error fetching copy template training:", error);
+          toast.error("Fehler beim Laden der Vorlage");
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchTemplate();
+    }
+  }, [location.search]);
 
   const handleChange = (e) => {
     setFormData({
