@@ -221,4 +221,35 @@ router.delete('/:training_id', authenticateToken, async (req, res) => {
   }
 });
 
+// PUT /api/trainings/:training_id/publish
+router.put('/:training_id/publish', authenticateToken, async (req, res) => {
+  const { training_id } = req.params;
+  try {
+    const training = await Training.findOne({ where: { training_id } });
+    if (!training) {
+      return res.status(404).json({ detail: 'Fortbildung nicht gefunden' });
+    }
+
+    if (training.created_by !== req.user.user_id && req.user.role !== 'admin') {
+      return res.status(403).json({ detail: 'Keine Berechtigung' });
+    }
+
+    const newStatus = training.status === 'draft' ? 'published' : 'draft';
+    await training.update({ status: newStatus, updated_at: new Date().toISOString() });
+
+    await logChange(
+      training_id,
+      req.user.user_id,
+      req.user.name,
+      `Status geändert auf ${newStatus}`,
+      { status: newStatus }
+    );
+
+    res.json(training);
+  } catch (error) {
+    console.error('Error publishing training:', error);
+    res.status(500).json({ detail: 'Fehler beim Ändern des Veröffentlichungsstatus' });
+  }
+});
+
 module.exports = router;
