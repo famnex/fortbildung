@@ -139,10 +139,10 @@ async function startServer() {
     await sequelize.sync();
     console.log('Database synchronized.');
 
-    // Initialize Default Admin
-    const adminEmail = 'admin@fortbildung.mso';
-    const adminUser = await User.findOne({ where: { email: adminEmail } });
-    if (!adminUser) {
+    // Initialize Default Admin only if database is completely empty of users
+    const userCount = await User.count();
+    if (userCount === 0) {
+      const adminEmail = 'admin@fortbildung.mso';
       await User.create({
         email: adminEmail,
         name: 'Administrator',
