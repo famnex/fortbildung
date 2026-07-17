@@ -20,6 +20,9 @@ const AdminSettingsPage = ({ user, onLogout }) => {
   const [testCredentials, setTestCredentials] = useState({ username: "", password: "", email: "" });
   const [updatingSystem, setUpdatingSystem] = useState(false);
   const [updateLogs, setUpdateLogs] = useState("");
+  const [updateStatus, setUpdateStatus] = useState("idle");
+  const [isPolling, setIsPolling] = useState(false);
+  const terminalEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
   
@@ -58,7 +61,46 @@ const AdminSettingsPage = ({ user, onLogout }) => {
 
   useEffect(() => {
     fetchSettings();
+    
+    // Check initial update status
+    const checkInitialStatus = async () => {
+      try {
+        const response = await axios.get(`${API}/settings/update-status`);
+        setUpdateStatus(response.data.status);
+        setUpdateLogs(response.data.logs || "");
+        if (response.data.status === "running") {
+          setUpdatingSystem(true);
+          setIsPolling(true);
+          const poll = async () => {
+            try {
+              const res = await axios.get(`${API}/settings/update-status`);
+              const { status, logs } = res.data;
+              setUpdateStatus(status);
+              setUpdateLogs(logs || "");
+              if (status === "running") {
+                setTimeout(poll, 1500);
+              } else {
+                setUpdatingSystem(false);
+                setIsPolling(false);
+              }
+            } catch (e) {
+              setTimeout(poll, 2500);
+            }
+          };
+          setTimeout(poll, 1500);
+        }
+      } catch (e) {
+        console.error("Error fetching initial update status:", e);
+      }
+    };
+    checkInitialStatus();
   }, []);
+
+  useEffect(() => {
+    if (terminalEndRef.current) {
+      terminalEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [updateLogs]);
 
   const fetchSettings = async () => {
     try {
@@ -79,41 +121,46 @@ const AdminSettingsPage = ({ user, onLogout }) => {
     });
   };
 
+  const pollUpdateStatus = async () => {
+    try {
+      const response = await axios.get(`${API}/settings/update-status`);
+      const { status, logs } = response.data;
+      setUpdateStatus(status);
+      setUpdateLogs(logs || "");
+      
+      if (status === "running") {
+        setTimeout(pollUpdateStatus, 1500);
+      } else {
+        setIsPolling(false);
+        setUpdatingSystem(false);
+        if (status === "success") {
+          toast.success("System erfolgreich aktualisiert!");
+        } else if (status === "failed") {
+          toast.error("System-Update fehlgeschlagen.");
+        }
+      }
+    } catch (error) {
+      setTimeout(pollUpdateStatus, 2500);
+    }
+  };
+
   const handleRunUpdate = async () => {
+    if (updatingSystem) return;
     setUpdatingSystem(true);
-    setUpdateLogs("Update wird gestartet...\n");
+    setUpdateStatus("running");
+    setIsPolling(true);
+    setUpdateLogs("System-Update wird im Hintergrund gestartet...\n");
     
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${API}/settings/update`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`
-        }
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        setUpdateLogs(prev => prev + `Fehler: ${response.status} - ${errorText}\n`);
-        setUpdatingSystem(false);
-        return;
-      }
-      
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        setUpdateLogs(prev => prev + chunk);
-      }
-      setUpdateLogs(prev => prev + "\n[FERTIG]\n");
+      await axios.post(`${API}/settings/update-system`);
+      toast.info("Update-Prozess gestartet...");
+      setTimeout(pollUpdateStatus, 1500);
     } catch (error) {
-      console.error("Update error:", error);
-      setUpdateLogs(prev => prev + `Systemfehler: ${error.message}\n`);
-    } finally {
+      console.error("Error starting update:", error);
+      toast.error(error.response?.data?.detail || "Fehler beim Starten des Updates");
       setUpdatingSystem(false);
+      setUpdateStatus("failed");
+      setIsPolling(false);
     }
   };
 
@@ -244,11 +291,12 @@ const AdminSettingsPage = ({ user, onLogout }) => {
         </div>
 
         <Tabs defaultValue="ldap" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="ldap">LDAP</TabsTrigger>
             <TabsTrigger value="smtp">SMTP</TabsTrigger>
             <TabsTrigger value="school">Schule</TabsTrigger>
             <TabsTrigger value="jwt_sso">JWT SSO</TabsTrigger>
+            <TabsTrigger value="update">Update</TabsTrigger>
           </TabsList>
 
 
@@ -667,6 +715,55 @@ const AdminSettingsPage = ({ user, onLogout }) => {
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="update" className="space-y-4">
+            <Card className="border-0 shadow-md">
+              <CardHeader>
+                <CardTitle>System-Update (One-Click)</CardTitle>
+                <CardDescription>
+                  Aktualisieren Sie das Fortbildungssystem auf die neueste Version von GitHub mit einem Klick.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4 p-4 bg-slate-50 rounded-lg border border-slate-100">
+                  <div className="space-y-1">
+                    <p className="text-sm font-semibold text-slate-800 flex items-center">
+                      Status: 
+                      {updateStatus === "idle" && <span className="ml-2 text-slate-500 font-normal">Bereit für Update</span>}
+                      {updateStatus === "running" && <span className="ml-2 text-blue-600 font-semibold animate-pulse">Wird aktualisiert...</span>}
+                      {updateStatus === "success" && <span className="ml-2 text-green-600 font-semibold flex items-center"><CheckCircle2 className="w-4 h-4 mr-1" /> Erfolgreich</span>}
+                      {updateStatus === "failed" && <span className="ml-2 text-red-600 font-semibold flex items-center"><XCircle className="w-4 h-4 mr-1" /> Fehlgeschlagen</span>}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      Dieser Vorgang holt den neuesten Code, installiert Abhängigkeiten, baut das Frontend und startet den Server neu.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleRunUpdate}
+                    disabled={updateStatus === "running"}
+                    className="bg-blue-600 hover:bg-blue-700 h-10 animate-fade-in"
+                  >
+                    {updateStatus === "running" ? (
+                      <span className="flex items-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Wird aktualisiert...
+                      </span>
+                    ) : (
+                      "Update jetzt ausführen"
+                    )}
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Update-Protokoll (Build-Logs)</Label>
+                  <div className="bg-slate-950 text-emerald-400 font-mono text-xs p-4 rounded-lg h-96 overflow-y-auto border border-slate-800 whitespace-pre-wrap select-all">
+                    {updateLogs || "Keine Protokolleinträge vorhanden. Starten Sie das Update, um die Logs zu sehen."}
+                    <div ref={terminalEndRef} />
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

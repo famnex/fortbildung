@@ -51,6 +51,7 @@ Globale Systemeinstellungen (LDAP, SMTP, Schul-Informationen).
 | **JWT SSO Settings** | | |
 | `jwt_sso_enabled` | Boolean | Aktiviert/Deaktiviert Single Sign-On via JWT |
 | `jwt_sso_secret` | String | Secret/Schlüssel zur Signaturvalidierung |
+| `jwt_sso_url` | String | Redirect-URL zur Anmeldung am Identity Provider |
 | **School Info** | | |
 | `school_name` | String | Name der Schule |
 | `school_logo_base64`| Text | Schul-Logo als Base64-String |
@@ -128,6 +129,9 @@ Verlauf von Änderungen an Fortbildungen.
 ---
 
 ## Versions-Historie & Migrationen
+
+### Update 2026-07-17
+* **JWT SSO Redirect URL**: Spalte `jwt_sso_url` (Typ: `TEXT`) zur Tabelle `settings` hinzugefügt. Wird beim Serverstart automatisch über eine rohe SQL-Query angelegt, falls noch nicht vorhanden (`ALTER TABLE settings ADD COLUMN jwt_sso_url TEXT;`).
 
 ### Update 2026-07-15
 * **Migration auf SQLite & Sequelize (Node.js)**: Die Datenbank wurde vollständig von MongoDB auf eine relationale SQLite-Struktur umgestellt.

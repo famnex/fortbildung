@@ -151,69 +151,90 @@ router.post('/test-smtp', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// POST /api/settings/update (Streaming route)
-router.post('/update', authenticateToken, requireAdmin, (req, res) => {
-  res.setHeader('Content-Type', 'text/plain');
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Connection', 'keep-alive');
-  
-  const repoDir = path.resolve(__dirname, '../../');
-  const updateBat = path.join(repoDir, 'update.bat');
-  
-  res.write('=== System Update gestartet ===\n');
-  res.write(`Verzeichnis: ${repoDir}\n`);
-  
-  let cmd, args;
-  if (fs.existsSync(updateBat)) {
-    res.write("Benutzerdefiniertes Update-Skript 'update.bat' gefunden.\n");
-    cmd = 'cmd.exe';
-    args = ['/c', 'update.bat'];
-  } else {
-    res.write("Standard-Update-Prozess wird ausgeführt (keine 'update.bat' vorhanden).\n");
-    cmd = 'git';
-    args = ['pull'];
-  }
-  
-  res.write(`\n> Führe aus: {cmd} ${args.join(' ')}\n\n`);
-  
-  const process = spawn(cmd, args, { cwd: repoDir, shell: true });
-  
-  process.stdout.on('data', (data) => {
-    res.write(data);
-  });
-  
-  process.stderr.on('data', (data) => {
-    res.write(`[FEHLER] ${data}`);
-  });
-  
-  process.on('close', (code) => {
-    res.write(`\nBefehl beendet mit Code: ${code}\n`);
-    
-    // Fallback behavior if standard pull succeeds
-    if (code === 0 && !fs.existsSync(updateBat)) {
-      res.write('\nStandard-Pip-Installationen werden nach Git-Pull ausgeführt...\n');
-      const pip = spawn('python', ['-m', 'pip', 'install', '-r', 'backend/requirements.txt'], { cwd: repoDir, shell: true });
-      
-      pip.stdout.on('data', (data) => res.write(data));
-      pip.stderr.on('data', (data) => res.write(`[FEHLER] ${data}`));
-      pip.on('close', (pipCode) => {
-        res.write(`\nBefehl beendet mit Code: ${pipCode}\n`);
-        if (pipCode === 0) {
-          res.write('\n=== UPDATE ERFOLGREICH BEENDET ===\n');
-        } else {
-          res.write('\n=== UPDATE ABGEBROCHEN wegen Fehler ===\n');
-        }
-        res.end();
-      });
-    } else {
-      if (code === 0) {
-        res.write('\n=== UPDATE ERFOLGREICH BEENDET ===\n');
-      } else {
-        res.write('\n=== UPDATE ABGEBROCHEN wegen Fehler ===\n');
-      }
-      res.end();
+const statusFile = path.join(__dirname, '../update_status.json');
+
+// Helper to get update state
+function getUpdateState() {
+  try {
+    if (fs.existsSync(statusFile)) {
+      return JSON.parse(fs.readFileSync(statusFile, 'utf8'));
     }
+  } catch (e) {
+    console.error('Error reading update status file:', e);
+  }
+  return { status: 'idle', logs: '' };
+}
+
+// Helper to save update state
+function saveUpdateState(state) {
+  try {
+    fs.writeFileSync(statusFile, JSON.stringify(state, null, 2));
+  } catch (e) {
+    console.error('Error writing update status file:', e);
+  }
+}
+
+// GET /api/settings/update-status
+router.get('/update-status', authenticateToken, requireAdmin, (req, res) => {
+  res.json(getUpdateState());
+});
+
+// POST /api/settings/update-system
+router.post('/update-system', authenticateToken, requireAdmin, (req, res) => {
+  const state = getUpdateState();
+  if (state.status === 'running') {
+    return res.status(400).json({ detail: 'Ein Update wird bereits ausgeführt.' });
+  }
+
+  const newState = {
+    status: 'running',
+    logs: '==============================================\nSystem-Update gestartet...\n==============================================\n'
+  };
+  saveUpdateState(newState);
+
+  // Spawn the update script in the background
+  const repoDir = path.resolve(__dirname, '../../');
+  const isWin = process.platform === 'win32';
+  const scriptPath = isWin
+    ? path.join(repoDir, 'update.bat')
+    : path.join(repoDir, 'update.sh');
+
+  const cmd = isWin ? scriptPath : 'bash';
+  const args = isWin ? [] : [scriptPath];
+
+  console.log(`Starting system update in background: ${cmd} ${args.join(' ')}`);
+
+  const child = spawn(cmd, args, {
+    cwd: repoDir,
+    shell: true,
+    env: process.env
   });
+
+  child.stdout.on('data', (data) => {
+    const currentState = getUpdateState();
+    currentState.logs += data.toString();
+    saveUpdateState(currentState);
+  });
+
+  child.stderr.on('data', (data) => {
+    const currentState = getUpdateState();
+    currentState.logs += `[FEHLER] ${data.toString()}`;
+    saveUpdateState(currentState);
+  });
+
+  child.on('close', (code) => {
+    const currentState = getUpdateState();
+    if (code === 0) {
+      currentState.status = 'success';
+      currentState.logs += '\n==============================================\nUpdate ERFOLGREICH BEENDET!\n==============================================\n';
+    } else {
+      currentState.status = 'failed';
+      currentState.logs += `\n==============================================\nUpdate FEHLGESCHLAGEN mit Code: ${code}\n==============================================\n`;
+    }
+    saveUpdateState(currentState);
+  });
+
+  res.json({ message: 'Update im Hintergrund gestartet', status: 'running' });
 });
 
 module.exports = router;

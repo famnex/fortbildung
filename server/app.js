@@ -133,6 +133,24 @@ async function startServer() {
       console.log('Default settings initialized.');
     }
 
+    // Recover or initialize System Update status
+    const statusFile = path.join(__dirname, 'update_status.json');
+    try {
+      if (fs.existsSync(statusFile)) {
+        const state = JSON.parse(fs.readFileSync(statusFile, 'utf8'));
+        if (state.status === 'running') {
+          state.status = 'success';
+          state.logs += '\n==============================================\nUpdate erfolgreich beendet und Server neu gestartet!\n==============================================\n';
+          fs.writeFileSync(statusFile, JSON.stringify(state, null, 2));
+          console.log('Recovered update status: marked as success after restart.');
+        }
+      } else {
+        fs.writeFileSync(statusFile, JSON.stringify({ status: 'idle', logs: '' }, null, 2));
+      }
+    } catch (e) {
+      console.error('Failed to recover update status:', e);
+    }
+
     app.listen(PORT, () => {
       console.log(`Server is running on port ${PORT}`);
     });
