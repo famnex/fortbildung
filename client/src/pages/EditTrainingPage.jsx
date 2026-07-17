@@ -80,6 +80,19 @@ const EditTrainingPage = ({ user, onLogout }) => {
   const handleDateChange = (index, field, value) => {
     const newDates = [...dates];
     newDates[index][field] = value;
+    
+    if (field === "start_datetime" && value) {
+      const startDatePart = value.substring(0, 10);
+      const endVal = newDates[index]["end_datetime"];
+      if (!endVal) {
+        const startTimePart = value.substring(11) || "09:00";
+        newDates[index]["end_datetime"] = `${startDatePart}T${startTimePart}`;
+      } else {
+        const endTimePart = endVal.substring(11) || "17:00";
+        newDates[index]["end_datetime"] = `${startDatePart}T${endTimePart}`;
+      }
+    }
+    
     setDates(newDates);
   };
 
@@ -99,30 +112,38 @@ const EditTrainingPage = ({ user, onLogout }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const isDraft = formData.status === "draft";
     const isExternal = formData.type === "external";
     
-    if (isExternal) {
-      if (!formData.title) {
-        toast.error("Bitte geben Sie einen Titel ein");
-        return;
-      }
-    } else {
-      if (!formData.title || !formData.description || !formData.location || !formData.registration_deadline) {
-        toast.error("Bitte füllen Sie alle Pflichtfelder aus");
-        return;
-      }
-      if (dates.some(d => !d.start_datetime || !d.end_datetime)) {
-        toast.error("Bitte geben Sie Start- und Enddatum für alle Termine an");
-        return;
+    let finalTitle = formData.title;
+    if (isDraft && (!finalTitle || finalTitle.trim() === "")) {
+      finalTitle = "Unbenannter Entwurf";
+    }
+
+    if (!isDraft) {
+      if (isExternal) {
+        if (!finalTitle) {
+          toast.error("Bitte geben Sie einen Titel ein");
+          return;
+        }
+      } else {
+        if (!finalTitle || !formData.description || !formData.location || !formData.registration_deadline) {
+          toast.error("Bitte füllen Sie alle Pflichtfelder aus");
+          return;
+        }
+        if (dates.some(d => !d.start_datetime || !d.end_datetime)) {
+          toast.error("Bitte geben Sie Start- und Enddatum für alle Termine an");
+          return;
+        }
       }
     }
 
-    const activeDates = isExternal 
+    const activeDates = (isDraft || isExternal)
       ? dates.filter(d => d.start_datetime && d.end_datetime)
       : dates;
 
     // Validate form fields
-    if (!isExternal && formFields.length > 0) {
+    if (!isDraft && !isExternal && formFields.length > 0) {
       const invalidFields = formFields.filter(f => !f.label || f.label.trim() === "");
       if (invalidFields.length > 0) {
         toast.error("Bitte geben Sie für alle Formularfelder eine Feldbezeichnung ein");
@@ -145,7 +166,7 @@ const EditTrainingPage = ({ user, onLogout }) => {
         }
         
         // Check if registration deadline is before or equal to start
-        if (registrationDeadline > startDate) {
+        if (!isDraft && registrationDeadline > startDate) {
           toast.error(`Termin ${i + 1}: Die Anmeldefrist muss vor oder gleich dem Startdatum liegen`);
           return;
         }
@@ -165,6 +186,7 @@ const EditTrainingPage = ({ user, onLogout }) => {
     try {
       await axios.put(`${API}/trainings/${trainingId}`, {
         ...formData,
+        title: finalTitle,
         dates: activeDates.map(d => ({
           start_datetime: d.start_datetime,
           end_datetime: d.end_datetime
