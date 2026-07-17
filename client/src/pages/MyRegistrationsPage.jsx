@@ -40,11 +40,13 @@ const MyRegistrationsPage = ({ user, onLogout }) => {
   const now = new Date();
 
   const activeRegistrations = registrations.filter(item => {
+    if (item.status === "cancelled") return false;
     const lastEnd = getLatestEndDate(item.training);
     return !lastEnd || lastEnd >= now;
   });
 
   const archivedRegistrations = registrations.filter(item => {
+    if (item.status === "cancelled") return false;
     const lastEnd = getLatestEndDate(item.training);
     return lastEnd && lastEnd < now;
   });

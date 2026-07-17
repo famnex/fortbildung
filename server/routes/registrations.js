@@ -8,7 +8,10 @@ const { sendEmail } = require('../utils/email');
 router.get(['/', '/my'], authenticateToken, async (req, res) => {
   try {
     const registrations = await Registration.findAll({
-      where: { user_id: req.user.user_id }
+      where: { 
+        user_id: req.user.user_id,
+        status: ['registered', 'waitlist']
+      }
     });
 
     const result = [];
