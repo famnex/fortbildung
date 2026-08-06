@@ -118,6 +118,10 @@ const Setting = sequelize.define('Setting', {
   logout_url: {
     type: DataTypes.STRING,
     defaultValue: ''
+  },
+  gemini_api_key: {
+    type: DataTypes.STRING,
+    defaultValue: ''
   }
 }, {
   timestamps: false,

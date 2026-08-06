@@ -57,7 +57,9 @@ const AdminSettingsPage = ({ user, onLogout }) => {
     school_name: "MSO - Fortbildungssystem",
     school_logo_base64: "",
     logout_text: "Abmelden",
-    logout_url: ""
+    logout_url: "",
+    // Gemini AI
+    gemini_api_key: ""
   });
 
 
@@ -293,11 +295,12 @@ const AdminSettingsPage = ({ user, onLogout }) => {
         </div>
 
         <Tabs defaultValue="ldap" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="ldap">LDAP</TabsTrigger>
             <TabsTrigger value="smtp">SMTP</TabsTrigger>
             <TabsTrigger value="school">Schule</TabsTrigger>
             <TabsTrigger value="jwt_sso">JWT SSO</TabsTrigger>
+            <TabsTrigger value="gemini">Gemini KI</TabsTrigger>
             <TabsTrigger value="update">Update</TabsTrigger>
           </TabsList>
 
@@ -792,6 +795,54 @@ const AdminSettingsPage = ({ user, onLogout }) => {
                     {updateLogs || "Keine Protokolleinträge vorhanden. Starten Sie das Update, um die Logs zu sehen."}
                     <div ref={terminalEndRef} />
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="gemini" className="space-y-4">
+            <Card className="border-0 shadow-md">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <span>Gemini KI-Konfiguration</span>
+                </CardTitle>
+                <CardDescription>
+                  Hinterlegen Sie Ihren Google Gemini API Key, um den KI-gesteuerten AI Scanner nutzen zu können. Der Key wird sicher in der Datenbank gespeichert.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="gemini_api_key">Gemini API Key</Label>
+                  <Input
+                    id="gemini_api_key"
+                    type="password"
+                    placeholder="AIza..."
+                    value={settings.gemini_api_key || ""}
+                    onChange={(e) => handleChange("gemini_api_key", e.target.value)}
+                    data-testid="gemini-api-key-input"
+                  />
+                  <p className="text-xs text-slate-500">
+                    Den API Key erhalten Sie unter{" "}
+                    <a
+                      href="https://aistudio.google.com/apikey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      Google AI Studio
+                    </a>. Aktivieren Sie dort die Gemini API und erstellen Sie einen Key.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="text-sm font-semibold text-blue-800 mb-2">So wird der AI Scanner verwendet</h4>
+                  <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                    <li>Gehen Sie zu "Meine Angebote"</li>
+                    <li>Klicken Sie auf den Button "AI Scanner" neben "+ Neue Fortbildung"</li>
+                    <li>Laden Sie Bilder oder PDFs einer Fortbildung hoch, oder geben Sie eine URL ein</li>
+                    <li>Die KI extrahiert automatisch alle relevanten Informationen</li>
+                    <li>Das Formular "Neue Fortbildung" wird vorab ausgefüllt zur Prüfung</li>
+                  </ul>
                 </div>
               </CardContent>
             </Card>

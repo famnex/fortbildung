@@ -57,6 +57,7 @@ Globale Systemeinstellungen (LDAP, SMTP, Schul-Informationen).
 | `school_logo_base64`| Text | Schul-Logo als Base64-String |
 | `logout_text` | String | Text des Abmelde-Buttons (Standard: "Abmelden") |
 | `logout_url` | String | Externe URL zur Weiterleitung nach dem Abmelden (Optional) |
+| `gemini_api_key` | String | Google Gemini API Key für den AI Scanner (Optional) |
 
 ---
 

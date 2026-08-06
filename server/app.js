@@ -17,6 +17,7 @@ const registrationRoutes = require('./routes/registrations');
 const participationRoutes = require('./routes/participations');
 const pdfRoutes = require('./routes/pdf');
 const logRoutes = require('./routes/logs');
+const aiRoutes = require('./routes/ai');
 
 const app = express();
 const PORT = process.env.PORT || 3018;
@@ -34,6 +35,7 @@ app.use('/fortbildung/api/registrations', registrationRoutes);
 app.use('/fortbildung/api/participations', participationRoutes);
 app.use('/fortbildung/api/pdfs', pdfRoutes);
 app.use('/fortbildung/api/admin', logRoutes);
+app.use('/fortbildung/api/ai', aiRoutes);
 
 // Static Hosting of built React files (client/dist) under /fortbildung
 const clientDistPath = path.join(__dirname, '../client/dist');
@@ -161,6 +163,13 @@ async function startServer() {
     try {
       await sequelize.query("ALTER TABLE trainings ADD COLUMN costs TEXT DEFAULT '';");
       console.log('Database: Added missing column costs to trainings table.');
+    } catch (e) {
+      // Column already exists, safe to ignore
+    }
+
+    try {
+      await sequelize.query("ALTER TABLE settings ADD COLUMN gemini_api_key TEXT DEFAULT '';");
+      console.log('Database: Added missing column gemini_api_key to settings table.');
     } catch (e) {
       // Column already exists, safe to ignore
     }

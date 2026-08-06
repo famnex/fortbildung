@@ -33,6 +33,7 @@ const CreateTrainingPage = ({ user, onLogout }) => {
   const [formFields, setFormFields] = useState([]);
   const location = useLocation();
 
+  // Prefill from copyFrom query param
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const copyFrom = params.get("copyFrom");
@@ -77,6 +78,37 @@ const CreateTrainingPage = ({ user, onLogout }) => {
       fetchTemplate();
     }
   }, [location.search]);
+
+  // Prefill from AI Scanner data (via navigation state)
+  useEffect(() => {
+    const aiData = location.state?.aiData;
+    if (aiData) {
+      setFormData({
+        title: aiData.title || "",
+        description: aiData.description || "",
+        requirements: aiData.requirements || "",
+        materials: aiData.materials || "",
+        location: aiData.location || "",
+        max_participants: aiData.max_participants || 0,
+        registration_deadline: aiData.registration_deadline || "",
+        status: "draft",
+        type: aiData.type || "internal",
+        external_link: aiData.external_link || "",
+        external_provider: aiData.external_provider || "",
+        costs: aiData.costs || ""
+      });
+      if (Array.isArray(aiData.dates) && aiData.dates.length > 0) {
+        const formattedDates = aiData.dates.map(d => ({
+          start_datetime: d.start_datetime ? d.start_datetime.substring(0, 16) : "",
+          end_datetime: d.end_datetime ? d.end_datetime.substring(0, 16) : ""
+        }));
+        setDates(formattedDates);
+      }
+      toast.info("Daten wurden von der KI vorausgefüllt. Bitte prüfen Sie alle Angaben vor dem Speichern.");
+      // Clear state to avoid re-fill on re-render
+      window.history.replaceState({}, document.title);
+    }
+  }, []);
 
   const handleChange = (e) => {
     setFormData({

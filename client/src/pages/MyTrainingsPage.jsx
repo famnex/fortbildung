@@ -1,13 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Layout from "@/components/Layout";
 import axios from "axios";
 import { API } from "@/App";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, Users, Eye, EyeOff, MapPin, Calendar, AlertCircle, Copy } from "lucide-react";
+import { Plus, Edit, Trash2, Users, Eye, EyeOff, MapPin, Calendar, AlertCircle, Copy, Sparkles, Upload, X, Link } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const MyTrainingsPage = ({ user, onLogout }) => {
@@ -19,6 +22,13 @@ const MyTrainingsPage = ({ user, onLogout }) => {
   const [publishing, setPublishing] = useState(null);
   const [showArchive, setShowArchive] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // AI Scanner state
+  const [aiScannerOpen, setAiScannerOpen] = useState(false);
+  const [aiFiles, setAiFiles] = useState([]);
+  const [aiUrl, setAiUrl] = useState("");
+  const [aiScanning, setAiScanning] = useState(false);
+  const fileInputRef = useRef(null);
 
   const getEarliestStartDate = (t) => {
     if (!t.dates || t.dates.length === 0) return null;
@@ -165,6 +175,19 @@ const MyTrainingsPage = ({ user, onLogout }) => {
               className={`h-10 px-4 ${showArchive ? "" : "bg-slate-800 text-white hover:bg-slate-700"}`}
             >
               Archiv
+            </Button>
+            <Button
+              onClick={() => {
+                setAiFiles([]);
+                setAiUrl("");
+                setAiScannerOpen(true);
+              }}
+              variant="outline"
+              className="h-10 px-4 border-violet-300 text-violet-700 hover:bg-violet-50 hover:border-violet-400"
+              data-testid="ai-scanner-button"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              AI Scanner
             </Button>
             <Button
               onClick={() => navigate("/create-training")}
@@ -368,6 +391,127 @@ const MyTrainingsPage = ({ user, onLogout }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* AI Scanner Modal */}
+      <Dialog open={aiScannerOpen} onOpenChange={(open) => { if (!aiScanning) setAiScannerOpen(open); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Sparkles className="w-5 h-5 text-violet-600" />
+              <span>AI Scanner</span>
+            </DialogTitle>
+            <DialogDescription>
+              Laden Sie Bilder oder PDFs hoch oder geben Sie eine URL ein. Die KI extrahiert automatisch alle relevanten Fortbildungsdaten und befüllt das Formular vor.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5 py-2">
+            {/* File Upload */}
+            <div className="space-y-2">
+              <Label>Dateien hochladen (Bilder oder PDFs)</Label>
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-300 rounded-lg p-6 flex flex-col items-center cursor-pointer hover:border-violet-400 hover:bg-violet-50 transition-colors"
+              >
+                <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                <p className="text-sm text-slate-600 font-medium">Klicken zum Auswählen</p>
+                <p className="text-xs text-slate-400 mt-1">PNG, JPG, PDF – max. 10 MB pro Datei</p>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,.pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const selected = Array.from(e.target.files || []);
+                  setAiFiles(prev => {
+                    const existing = prev.map(f => f.name);
+                    const newFiles = selected.filter(f => !existing.includes(f.name));
+                    return [...prev, ...newFiles];
+                  });
+                }}
+              />
+              {aiFiles.length > 0 && (
+                <div className="space-y-1">
+                  {aiFiles.map((file, idx) => (
+                    <div key={idx} className="flex items-center justify-between bg-slate-50 rounded px-3 py-1.5 text-sm">
+                      <span className="truncate text-slate-700">{file.name}</span>
+                      <button
+                        onClick={() => setAiFiles(prev => prev.filter((_, i) => i !== idx))}
+                        className="ml-2 text-slate-400 hover:text-red-500"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* URL Input */}
+            <div className="space-y-2">
+              <Label htmlFor="ai-url">Oder: Link zur Fortbildungsseite</Label>
+              <div className="relative">
+                <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Input
+                  id="ai-url"
+                  placeholder="https://..."
+                  value={aiUrl}
+                  onChange={(e) => setAiUrl(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            {aiScanning && (
+              <div className="flex items-center justify-center space-x-3 py-4 bg-violet-50 rounded-lg border border-violet-200">
+                <div className="w-5 h-5 border-2 border-violet-600 border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-violet-700 font-medium">KI analysiert Ihre Daten...</span>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setAiScannerOpen(false)}
+              disabled={aiScanning}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              disabled={aiScanning || (aiFiles.length === 0 && !aiUrl.trim())}
+              onClick={async () => {
+                setAiScanning(true);
+                try {
+                  const formData = new FormData();
+                  aiFiles.forEach(file => formData.append("files", file));
+                  if (aiUrl.trim()) formData.append("url", aiUrl.trim());
+
+                  const response = await axios.post(`${API}/ai/scan`, formData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                    timeout: 90000
+                  });
+
+                  toast.success("KI hat die Daten erfolgreich extrahiert!");
+                  setAiScannerOpen(false);
+                  navigate("/create-training", { state: { aiData: response.data } });
+                } catch (error) {
+                  console.error("AI scan error:", error);
+                  toast.error(error.response?.data?.detail || "Fehler beim Analysieren der Daten.");
+                } finally {
+                  setAiScanning(false);
+                }
+              }}
+              className="bg-violet-600 hover:bg-violet-700"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              {aiScanning ? "Analysiere..." : "Jetzt analysieren"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
