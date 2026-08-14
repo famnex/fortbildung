@@ -94,7 +94,7 @@ router.post('/', authenticateToken, async (req, res) => {
       registered_at: new Date().toISOString()
     });
 
-    // Send confirmation email
+    // Send confirmation email to the registering user
     const subject = status === 'registered' 
       ? `Anmeldebestätigung: ${training.title}`
       : `Wartelistenplatz: ${training.title}`;
@@ -104,6 +104,20 @@ router.post('/', authenticateToken, async (req, res) => {
       : `<h2>Warteliste</h2><p>Die Fortbildung "${training.title}" ist ausgebucht. Sie wurden auf die Warteliste gesetzt.</p>`;
 
     await sendEmail(req.user.email, subject, `<html><body>${textHtml}</body></html>`);
+
+    // Notify course creator about new registration
+    if (training.created_by) {
+      const creator = await User.findOne({ where: { user_id: training.created_by } });
+      if (creator && creator.email) {
+        const creatorSubject = status === 'registered'
+          ? `Neue Anmeldung: ${training.title}`
+          : `Neue Wartelistenanmeldung: ${training.title}`;
+        const creatorHtml = status === 'registered'
+          ? `<h2>Neue Anmeldung</h2><p><strong>${req.user.name}</strong> (${req.user.email}) hat sich für Ihre Fortbildung "${training.title}" angemeldet.</p>`
+          : `<h2>Neue Wartelistenanmeldung</h2><p><strong>${req.user.name}</strong> (${req.user.email}) wurde auf die Warteliste Ihrer Fortbildung "${training.title}" gesetzt.</p>`;
+        await sendEmail(creator.email, creatorSubject, `<html><body>${creatorHtml}</body></html>`);
+      }
+    }
 
     res.status(201).json(registration);
   } catch (error) {
@@ -150,6 +164,18 @@ router.delete('/:registration_id', authenticateToken, async (req, res) => {
         `Abmeldung: ${training.title}`,
         `<html><body><h2>Abmeldung bestätigt</h2><p>Ihre Abmeldung für die Fortbildung "${training.title}" war erfolgreich.</p></body></html>`
       );
+
+      // Notify course creator about cancellation
+      if (training.created_by) {
+        const creator = await User.findOne({ where: { user_id: training.created_by } });
+        if (creator && creator.email) {
+          await sendEmail(
+            creator.email,
+            `Abmeldung: ${training.title}`,
+            `<html><body><h2>Abmeldung eingegangen</h2><p><strong>${registration.user_name}</strong> (${registration.user_email}) hat sich von Ihrer Fortbildung "${training.title}" abgemeldet.</p></body></html>`
+          );
+        }
+      }
 
       // If they were registered, promote first user from waitlist
       if (oldStatus === 'registered') {
