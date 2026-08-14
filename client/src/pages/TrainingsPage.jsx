@@ -288,7 +288,7 @@ const TrainingsPage = ({ user, onLogout }) => {
                       {isExternal ? (
                         training.external_link ? (
                           <a
-                            href={training.external_link}
+                            href={/^https?:\/\//i.test(training.external_link) ? training.external_link : `https://${training.external_link}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="block w-full"
