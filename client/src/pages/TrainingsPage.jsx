@@ -136,7 +136,19 @@ const TrainingsPage = ({ user, onLogout }) => {
   };
 
   const isDeadlinePassed = (deadline) => {
-    return new Date(deadline) < new Date();
+    // deadline applies until end of that day
+    const d = new Date(deadline);
+    d.setHours(23, 59, 59, 999);
+    return d < new Date();
+  };
+
+  const isTrainingEnded = (training) => {
+    if (!training.dates || training.dates.length === 0) return false;
+    const lastEnd = training.dates.reduce((max, d) => {
+      const end = new Date(d.end_datetime);
+      return end > max ? end : max;
+    }, new Date(0));
+    return lastEnd < new Date();
   };
 
   const isFull = (training) => {
@@ -207,7 +219,9 @@ const TrainingsPage = ({ user, onLogout }) => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {paginatedList.map((training) => {
                 const isExternal = training.type === "external";
-                const deadlinePassed = training.registration_deadline ? isDeadlinePassed(training.registration_deadline) : false;
+                const deadlinePassed = training.registration_deadline
+                  ? isDeadlinePassed(training.registration_deadline)
+                  : isTrainingEnded(training);
                 const full = !isExternal && isFull(training);
                 const canRegister = !isExternal && !deadlinePassed && !full;
 
@@ -265,10 +279,12 @@ const TrainingsPage = ({ user, onLogout }) => {
                         </div>
                       )}
 
-                      {training.registration_deadline && (
+                      {!isExternal && (
                         <div className="flex items-center text-sm text-slate-600">
                           <Clock className="w-4 h-4 mr-2 text-slate-400" />
-                          Anmeldefrist: {formatDate(training.registration_deadline)}
+                          {training.registration_deadline
+                            ? `Anmeldefrist: ${formatDate(training.registration_deadline)}`
+                            : "Anmeldung bis Veranstaltungsende"}
                         </div>
                       )}
 

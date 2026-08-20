@@ -68,10 +68,22 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ detail: 'Sie sind bereits für diese Fortbildung angemeldet' });
     }
 
-    // Check deadlines
-    const deadline = new Date(training.registration_deadline);
-    if (new Date() > deadline) {
-      return res.status(400).json({ detail: 'Die Anmeldefrist ist bereits abgelaufen' });
+    // Check deadline: if set, it applies until end of that day; if not set, allow until end of last training date
+    if (training.registration_deadline) {
+      const deadline = new Date(training.registration_deadline);
+      deadline.setHours(23, 59, 59, 999);
+      if (new Date() > deadline) {
+        return res.status(400).json({ detail: 'Die Anmeldefrist ist bereits abgelaufen' });
+      }
+    } else if (training.dates && training.dates.length > 0) {
+      const parsedDates = typeof training.dates === 'string' ? JSON.parse(training.dates) : training.dates;
+      const lastEnd = parsedDates.reduce((max, d) => {
+        const end = new Date(d.end_datetime);
+        return end > max ? end : max;
+      }, new Date(0));
+      if (new Date() > lastEnd) {
+        return res.status(400).json({ detail: 'Die Anmeldefrist ist bereits abgelaufen (Veranstaltung bereits beendet)' });
+      }
     }
 
     // Check capacity

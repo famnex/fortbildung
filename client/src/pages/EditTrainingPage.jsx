@@ -131,8 +131,8 @@ const EditTrainingPage = ({ user, onLogout }) => {
           return;
         }
       } else {
-        if (!finalTitle || !formData.description || !formData.location || !formData.registration_deadline) {
-          toast.error("Bitte füllen Sie alle Pflichtfelder aus");
+        if (!finalTitle || !formData.description || !formData.location) {
+          toast.error("Bitte füllen Sie alle Pflichtfelder aus (Titel, Beschreibung, Ort)");
           return;
         }
         if (dates.some(d => !d.start_datetime || !d.end_datetime)) {
@@ -429,7 +429,9 @@ const EditTrainingPage = ({ user, onLogout }) => {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="registration_deadline">Anmeldefrist {formData.type === "internal" ? "*" : ""}</Label>
+                  <Label htmlFor="registration_deadline">
+                    Anmeldefrist <span className="text-slate-400 font-normal text-xs">(optional)</span>
+                  </Label>
                   <Input
                     id="registration_deadline"
                     name="registration_deadline"
@@ -438,6 +440,11 @@ const EditTrainingPage = ({ user, onLogout }) => {
                     onChange={handleChange}
                     data-testid="registration-deadline-input"
                   />
+                  <p className="text-xs text-slate-500">
+                    {formData.registration_deadline
+                      ? `Anmeldungen sind bis zum Ende des ${new Date(formData.registration_deadline + "T12:00:00").toLocaleDateString("de-DE")} möglich (23:59 Uhr).`
+                      : "Ohne Frist können sich Teilnehmer bis zum Ende der Veranstaltung anmelden."}
+                  </p>
                 </div>
               </div>
 
