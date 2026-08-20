@@ -5,6 +5,30 @@ const { User } = require('../models');
 const { authenticateToken, requireAdmin } = require('../middleware/auth');
 const { Op } = require('sequelize');
 
+// GET /api/users/search?q=... – accessible by all authenticated users (for adding participants)
+router.get('/search', authenticateToken, async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (q.length < 2) {
+    return res.json([]);
+  }
+  try {
+    const users = await User.findAll({
+      where: {
+        [Op.or]: [
+          { name: { [Op.like]: `%${q}%` } },
+          { email: { [Op.like]: `%${q}%` } }
+        ]
+      },
+      attributes: ['user_id', 'name', 'email', 'role'],
+      limit: 20
+    });
+    res.json(users);
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ detail: 'Fehler bei der Benutzersuche' });
+  }
+});
+
 // GET /api/users
 router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   try {

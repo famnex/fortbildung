@@ -357,6 +357,63 @@ router.post('/:training_id/participants/confirm', authenticateToken, async (req,
   }
 });
 
+// POST /api/trainings/:training_id/participants/add
+router.post('/:training_id/participants/add', authenticateToken, async (req, res) => {
+  const { training_id } = req.params;
+  const { user_id } = req.body;
+
+  if (!user_id) {
+    return res.status(400).json({ detail: 'user_id erforderlich' });
+  }
+
+  try {
+    const training = await Training.findOne({ where: { training_id } });
+    if (!training) {
+      return res.status(404).json({ detail: 'Fortbildung nicht gefunden' });
+    }
+
+    if (training.created_by !== req.user.user_id && req.user.role !== 'admin') {
+      return res.status(403).json({ detail: 'Keine Berechtigung' });
+    }
+
+    const targetUser = await User.findOne({ where: { user_id } });
+    if (!targetUser) {
+      return res.status(404).json({ detail: 'Benutzer nicht gefunden' });
+    }
+
+    // Check if already registered
+    const existing = await Registration.findOne({
+      where: { training_id, user_id, status: ['registered', 'waitlist'] }
+    });
+    if (existing) {
+      return res.status(400).json({ detail: `${targetUser.name} ist bereits für diese Fortbildung angemeldet` });
+    }
+
+    // Create registration directly as 'registered' (bypass capacity/deadline for manual adds)
+    const registration = await Registration.create({
+      training_id,
+      user_id,
+      user_name: targetUser.name,
+      user_email: targetUser.email,
+      status: 'registered',
+      form_responses: {},
+      registered_at: new Date().toISOString()
+    });
+
+    // Notify the added user
+    await sendEmail(
+      targetUser.email,
+      `Anmeldung: ${training.title}`,
+      `<html><body><h2>Anmeldung bestätigt</h2><p>Sie wurden manuell für die Fortbildung "${training.title}" angemeldet.</p></body></html>`
+    );
+
+    res.status(201).json({ message: `${targetUser.name} erfolgreich hinzugefügt`, registration });
+  } catch (error) {
+    console.error('Error adding participant:', error);
+    res.status(500).json({ detail: 'Fehler beim Hinzufügen des Teilnehmers' });
+  }
+});
+
 // DELETE /api/trainings/:training_id/participants/:registration_id
 router.delete('/:training_id/participants/:registration_id', authenticateToken, async (req, res) => {
   const { training_id, registration_id } = req.params;
